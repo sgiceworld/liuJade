@@ -1,0 +1,38 @@
+# 古玉鉴真 — 训练配置 (基础)
+# 使用: python -m training.src.training.trainer --config configs/base.yaml
+
+model:
+  macro_backbone: "convnextv2_atto"    # femto/atto/pico
+  micro_backbone: "convnextv2_atto"
+  feature_dim: 512
+  dropout: 0.3
+
+data:
+  data_root: "./data"
+  annotation_file: "annotations.json"
+  num_macro_views: 3
+  num_micro_views: 2
+  micro_weight: 10.0
+
+training:
+  stage: 2  # 2=macro, 3=micro, 4=multiview
+  batch_size: 8
+  epochs: 50
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  warmup_epochs: 5
+  lr_scheduler: "cosine"
+
+loss:
+  coarse_era_weight: 0.3
+  era_label_smoothing: 0.05
+  focal_gamma: 2.0
+  focal_alpha: 0.25
+  contrastive_temperature: 0.07
+  auth_weight: 0.5
+  contrastive_weight: 0.1
+
+export:
+  opset_version: 17
+  simplify: true
+  output_dir: "../../models"

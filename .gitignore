@@ -1,0 +1,32 @@
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+*.log
+
+# Node
+node_modules/
+desktop/.nodeenv/
+desktop/dist/
+*.tsbuildinfo
+
+# Data (large files, not version controlled)
+annotation_data/
+scraped_data/
+training_data/
+*.db
+models/*.onnx
+/tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop/resources/

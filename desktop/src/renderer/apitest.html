@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>API Test</title></head>
+<body>
+<h3>API Connectivity Test</h3>
+<div id="result">Testing...</div>
+<script>
+const API = 'http://localhost:8720';
+async function test() {
+  const out = document.getElementById('result');
+  out.innerHTML = 'Step 1: health check...<br>';
+  try {
+    const r1 = await fetch(API + '/health');
+    out.innerHTML += 'Health: ' + r1.status + '<br>';
+    out.innerHTML += 'Step 2: fetching 50 annotations...<br>';
+    const t0 = performance.now();
+    const r2 = await fetch(API + '/annotations?limit=50&offset=0');
+    const d = await r2.json();
+    const elapsed = ((performance.now() - t0)/1000).toFixed(1);
+    out.innerHTML += 'Status: ' + r2.status + ' | Records: ' + d.data.length + ' | Time: ' + elapsed + 's<br>';
+    out.innerHTML += 'Step 3: fetching 200 annotations...<br>';
+    const t1 = performance.now();
+    const r3 = await fetch(API + '/annotations?limit=200&offset=0');
+    const d2 = await r3.json();
+    const elapsed2 = ((performance.now() - t1)/1000).toFixed(1);
+    out.innerHTML += 'Status: ' + r3.status + ' | Records: ' + d2.data.length + ' | Total: ' + d2.total + ' | Time: ' + elapsed2 + 's<br>';
+    out.innerHTML += '<b style=color:green>ALL TESTS PASSED</b>';
+  } catch(e) {
+    out.innerHTML += '<b style=color:red>FAILED: ' + e.message + '</b>';
+  }
+}
+test();
+</script>
+</body></html>
