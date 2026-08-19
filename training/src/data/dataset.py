@@ -17,6 +17,11 @@ import torch
 from torch.utils.data import Dataset
 from PIL import Image
 
+try:
+    from ..utils.label_code import ERA_CODE, ERA_TO_GROUP
+except ImportError:
+    from utils.label_code import ERA_CODE, ERA_TO_GROUP
+
 
 class JadeMultiViewDataset(Dataset):
     """
@@ -66,15 +71,23 @@ class JadeMultiViewDataset(Dataset):
             macro_imgs = []
             micro_imgs = []
             for img_path, img_type in zip(ann['images'], ann['image_types']):
+                # Windows 反斜杠路径归一化为正斜杠
+                img_path = img_path.replace('\\', '/')
                 if img_type == 'micro':
                     micro_imgs.append(str(self.data_root / 'images' / img_path))
                 else:
                     macro_imgs.append(str(self.data_root / 'images' / img_path))
 
+            # 年代细粒度索引 (0-13) 与粗粒度分组 (0-4)
+            era_code = ann.get('era_code', 'A')
+            era_idx = ERA_CODE.index(era_code) if era_code in ERA_CODE else 0
+            era_group = ERA_TO_GROUP.get(era_code, 0)
+
             self.pieces.append({
                 'label_code': ann['label_code'],
-                'era_code': ann['era_code'],
-                'era_group': ann.get('era_group', 0),
+                'era_code': era_code,
+                'era_idx': era_idx,
+                'era_group': era_group,
                 'authenticity': 0 if ann['authenticity'] == '真老' else 1,
                 'macro_images': macro_imgs,
                 'micro_images': micro_imgs,
@@ -131,6 +144,7 @@ class JadeMultiViewDataset(Dataset):
 
         return {
             'era_code': piece['era_code'],
+            'era_idx': piece['era_idx'],
             'era_group': piece['era_group'],
             'authenticity': piece['authenticity'],
             'macro_images': torch.stack(macro_tensors) if macro_tensors else torch.zeros(0, 3, 512, 512),
@@ -170,7 +184,8 @@ def collate_multiview_batch(batch: List[Dict]) -> Dict[str, Any]:
 
     Returns:
         dict with:
-            era_code: List[str], era_group: Tensor(N,), authenticity: Tensor(N,),
+            era_code: List[str], era_idx: Tensor(N,), era_group: Tensor(N,),
+            authenticity: Tensor(N,),
             macro_images: Tensor(N, max_m, 3, 512, 512)  (padded)
             micro_tiles: List[List[Tensor]]  (嵌套列表)
             macro_mask: Tensor(N, max_m)  (有效 macro 图 mask)
@@ -178,6 +193,7 @@ def collate_multiview_batch(batch: List[Dict]) -> Dict[str, Any]:
     N = len(batch)
 
     era_codes = [b['era_code'] for b in batch]
+    era_idx = torch.tensor([b['era_idx'] for b in batch], dtype=torch.long)
     era_groups = torch.tensor([b['era_group'] for b in batch], dtype=torch.long)
     authenticity = torch.tensor([b['authenticity'] for b in batch], dtype=torch.long)
 
@@ -204,6 +220,7 @@ def collate_multiview_batch(batch: List[Dict]) -> Dict[str, Any]:
 
     return {
         'era_code': era_codes,
+        'era_idx': era_idx,
         'era_group': era_groups,
         'authenticity': authenticity,
         'macro_images': macro_images,

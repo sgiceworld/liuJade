@@ -385,6 +385,58 @@ AI 驱动的古玉鉴定与数据标注系统。面向专业古玉鉴定师和�
 
 ---
 
+### 29. 训练管线修复与入口  `2026-08-19`
+
+**用户需求：**
+> 重新加载liuJade项目，准备开发下一个特性 (模型训练实战)
+
+**实现内容：**
+- 修复 `dataset.py`：年代细粒度索引 (era_idx 0-13) + 粗粒度分组 (era_group 0-4) 正确映射，Windows 路径归一化
+- 修复 `trainer.py`：coarse targets 不再硬编码全 0；实现分阶段冻结（阶段2 冻结微距流 / 阶段3 冻结宏观流）；CosineAnnealingLR T_max 保护
+- 修复 `to_onnx.py`：MACRO 流导出改为骨干网络本身（原代码向 5 维输入的 MacroStream 传 4 维张量必崩）；移除死代码；`dynamo=False`（Python 3.14 无 onnxscript）
+- 修复 Python 3.14 相对导入限制（`from ..models` 双模式导入回退）
+- 新增 `scripts/prepare_data.py`：manifest.jsonl + jade.db → annotations.json + images/ 数据准备
+- 新增 `scripts/train.py`：完整训练入口（config 合并 / CLI 覆盖 / 冒烟模式 / checkpoint / --export-only）
+- 新增 `scripts/train.sh`：阶段化训练脚本
+- 修复 `inference/model_manager.py`：`run_macro` 压缩 batch 维返回 (D,)，修复融合层输入 rank 4 错误
+
+---
+
+### 30. 首次端到端训练实战  `2026-08-19`
+
+**用户需求：**
+> 在数据仅 11 张、CPU-only 的现状下跑通训练全链路
+
+**实现内容：**
+- ConvNeXt-V2 atto×2 (8.4M 参数) 真实数据训练：50 epoch, era_top1 0.0 → 1.0, loss 收敛
+- checkpoint 保存 (33.5MB, models/checkpoints/)
+- ONNX 三子模型导出 (macro 14.3MB / micro 14.3MB / fusion 5MB) + metadata
+- 推理引擎加载验证：预测战国 90.2%、真老 90.9%、CPU 395ms
+- 新增 `scripts/verify_onnx.py`：PyTorch vs ONNX 输出一致性验证 (偏差 0.000000)
+
+---
+
+### 31. 批量训练数据扩充  `2026-08-19`
+
+**用户需求：**
+> 批量裁剪+批量扩充训练数据后跑规模更大的训练
+
+**实现内容：**
+- 新增 `scripts/batch_crop.py`：遍历 jade.db 全部玉器记录对应书页，自动裁剪黑底玉器照片
+- 年代已确认 → 归档到 `training_data/{code}_{年代}/`；待OCR确认 → `A_待OCR确认/`
+- 逐条追加 `training_manifest.jsonl`，跳过已有裁剪
+- 全量 6,470 页面图批量处理：3,435 张新裁剪图 (24 分钟, 0 错误)
+- 已确认年代 161 件 → 训练集 130 / 验证集 31 (按年代分层)
+
+**训练结果 (atto×2, CPU, 40 epoch):**
+- 验证集年代分类准确率 (Top-1): **96.9%** (Top-3: 100%)
+- 8 个年代: 文化期 87 / 金元 27 / 明 21 / 宋 9 / 秦汉 8 / 唐 7 / 战国 4 / 商代 2
+- ONNX 重新导出 + PyTorch 一致性验证通过 (偏差 0.000000)
+- 推理: CPU 317ms / 件 (目标 < 8s)
+- 待OCR确认裁剪图 3,281 张, 后续人工审查后可继续扩充
+
+---
+
 ## 技术架构总结
 
 ### 后端

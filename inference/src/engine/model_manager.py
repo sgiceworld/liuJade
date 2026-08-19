@@ -81,13 +81,13 @@ class ModelManager:
             image: (1, 3, 512, 512) float32
 
         Returns:
-            features: (1, D) float32
+            features: (D,) float32 (单图特征向量, 已压缩 batch 维)
         """
         outputs = self.macro_session.run(
             ['macro_features'],
             {'macro_image': image},
         )
-        return outputs[0]
+        return outputs[0][0]
 
     def run_micro(self, tile: np.ndarray) -> np.ndarray:
         """

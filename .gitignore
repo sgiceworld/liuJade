@@ -30,3 +30,6 @@ models/*.onnx
 .DS_Store
 Thumbs.db
 desktop/resources/
+models/checkpoints/
+training/data/
+training/logs/

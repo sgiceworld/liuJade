@@ -40,22 +40,6 @@ def export_to_onnx(
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if input_shapes is None:
-        input_shapes = {
-            'macro_images': (1, 3, 3, 512, 512),  # (B, N_macro, C, H, W)
-            'macro_mask': (1, 3),                   # (B, N_macro)
-        }
-
-    # 创建示例输入
-    device = next(model.parameters()).device
-    dummy_macro = torch.randn(input_shapes['macro_images'], device=device)
-    dummy_macro_mask = torch.ones(input_shapes['macro_mask'], device=device)
-
-    # 微距图 tile: 用 List 类型
-    dummy_micro_tiles = [
-        [torch.randn(4, 3, 224, 224, device=device)]  # 1张微距图, 4个tiles
-    ]
-
     # ── 方案: 分别导出各子模块，推理时手动组装 ──
     # 因为 ONNX 不擅长处理嵌套 List 输入
 
@@ -100,15 +84,19 @@ def _export_macro_stream(
     opset: int = 17,
     simplify: bool = True,
 ):
-    """导出宏观流为 ONNX。"""
-    macro_stream = model.macro_stream
-    macro_stream.eval()
+    """导出宏观流为 ONNX (单张图处理, 与推理引擎 run_macro 对齐)。
+
+    注意: MacroStream.forward 期望 5 维输入 (B, N, C, H, W),
+    推理端逐张送入 (1, C, H, W), 因此导出骨干网络本身。
+    """
+    macro_backbone = model.macro_stream.backbone
+    macro_backbone.eval()
 
     dummy_input = torch.randn(1, 3, 512, 512)
 
     torch.onnx.export(
-        macro_stream,
-        (dummy_input, None),  # (images, mask)
+        macro_backbone,
+        dummy_input,
         output_path,
         input_names=['macro_image'],
         output_names=['macro_features'],
@@ -117,6 +105,7 @@ def _export_macro_stream(
             'macro_features': {0: 'batch'},
         },
         opset_version=opset,
+        dynamo=False,  # legacy exporter (Python 3.14 无 onnxscript)
         do_constant_folding=True,
     )
 
@@ -147,6 +136,7 @@ def _export_micro_stream(
             'tile_features': {0: 'batch'},
         },
         opset_version=opset,
+        dynamo=False,  # legacy exporter (Python 3.14 无 onnxscript)
         do_constant_folding=True,
     )
 
@@ -202,6 +192,7 @@ def _export_fusion_and_heads(
             'micro_mask': {0: 'batch', 1: 'num_micro'},
         },
         opset_version=opset,
+        dynamo=False,  # legacy exporter (Python 3.14 无 onnxscript)
         do_constant_folding=True,
     )
 

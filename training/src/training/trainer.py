@@ -12,15 +12,29 @@ import pytorch_lightning as pl
 from torch import optim
 from typing import Dict, Any, Optional
 
-from ..models.jade_model import JadeAuthModel
-from .losses import MultiTaskLoss
-from .metrics import (
-    compute_era_accuracy,
-    compute_group_accuracy,
-    compute_auth_metrics,
-    compute_per_era_accuracy,
-    aggregate_metrics,
-)
+try:
+    from ..models.jade_model import JadeAuthModel
+except ImportError:
+    from models.jade_model import JadeAuthModel
+
+try:
+    from .losses import MultiTaskLoss
+    from .metrics import (
+        compute_era_accuracy,
+        compute_group_accuracy,
+        compute_auth_metrics,
+        compute_per_era_accuracy,
+        aggregate_metrics,
+    )
+except ImportError:
+    from losses import MultiTaskLoss
+    from metrics import (
+        compute_era_accuracy,
+        compute_group_accuracy,
+        compute_auth_metrics,
+        compute_per_era_accuracy,
+        aggregate_metrics,
+    )
 
 
 class JadeAuthTrainer(pl.LightningModule):
@@ -53,6 +67,17 @@ class JadeAuthTrainer(pl.LightningModule):
         # 记录验证集指标
         self.val_metrics = []
 
+        # 分阶段冻结:
+        #   阶段2: 冻结微距流 (仅训练宏观流 + 融合 + 分类头)
+        #   阶段3: 冻结宏观流 (仅训练微距流 + 融合 + 分类头)
+        #   阶段4: 全部可训练
+        if stage == 2:
+            for p in self.model.micro_stream.parameters():
+                p.requires_grad = False
+        elif stage == 3:
+            for p in self.model.macro_stream.parameters():
+                p.requires_grad = False
+
     def forward(self, macro_images, micro_tiles, macro_mask=None, micro_mask=None):
         return self.model(macro_images, micro_tiles, macro_mask, micro_mask)
 
@@ -68,6 +93,7 @@ class JadeAuthTrainer(pl.LightningModule):
         # 准确率
         metrics = outputs['metrics']
         self.log('train/era_top1', metrics['era_top1'], prog_bar=True)
+        self.log('train/group_acc', metrics['group_acc'])
         self.log('train/auth_f1', metrics['auth_f1'])
 
         return loss['total']
@@ -100,57 +126,28 @@ class JadeAuthTrainer(pl.LightningModule):
         macro_images = batch['macro_images']
         micro_tiles = batch['micro_tiles']
         macro_mask = batch.get('macro_mask')
-        era_targets = batch['era_group']  # 此处实际是细粒度年代索引
+        era_targets = batch['era_idx']          # 细粒度年代索引 (0-13)
+        era_coarse_targets = batch['era_group']  # 粗粒度分组 (0-4)
         auth_targets = batch['authenticity']
 
-        # 根据训练阶段选择性冻结
-        if self.stage == 2:
-            # 仅训练宏观流 + 年代头
-            outputs = self.model(macro_images, micro_tiles, macro_mask)
-            era_fine = outputs['era_fine']
-            era_coarse = outputs['era_coarse']
-            auth_preds = outputs['authenticity']
+        # 根据训练阶段冻结的流 (在 __init__ 中已设置 requires_grad)
+        outputs = self.model(macro_images, micro_tiles, macro_mask)
+        era_fine = outputs['era_fine']
+        era_coarse = outputs['era_coarse']
+        auth_preds = outputs['authenticity']
 
-            # 微距流输出用 zeros (不参与 loss 计算)
-            loss = self.criterion(
-                era_fine, era_coarse, auth_preds,
-                outputs['fused'],
-                era_targets,
-                torch.tensor([0] * len(era_targets)),  # coarse targets — 需从 batch 获取
-                auth_targets,
-            )
-        elif self.stage == 3:
-            # 训练微距流 + 年代头
-            outputs = self.model(macro_images, micro_tiles, macro_mask)
-            era_fine = outputs['era_fine']
-            era_coarse = outputs['era_coarse']
-            auth_preds = outputs['authenticity']
-
-            loss = self.criterion(
-                era_fine, era_coarse, auth_preds,
-                outputs['fused'],
-                era_targets,
-                torch.tensor([0] * len(era_targets)),
-                auth_targets,
-            )
-        else:
-            # 阶段4: 全模块训练
-            outputs = self.model(macro_images, micro_tiles, macro_mask)
-            era_fine = outputs['era_fine']
-            era_coarse = outputs['era_coarse']
-            auth_preds = outputs['authenticity']
-
-            loss = self.criterion(
-                era_fine, era_coarse, auth_preds,
-                outputs['fused'],
-                era_targets,
-                torch.tensor([0] * len(era_targets)),
-                auth_targets,
-            )
+        loss = self.criterion(
+            era_fine, era_coarse, auth_preds,
+            outputs['fused'],
+            era_targets,
+            era_coarse_targets,
+            auth_targets,
+        )
 
         metrics = {
             **compute_era_accuracy(era_fine, era_targets),
             **compute_auth_metrics(auth_preds, auth_targets),
+            'group_acc': compute_group_accuracy(era_coarse, era_coarse_targets),
         }
 
         return {'loss': loss, 'metrics': metrics, 'outputs': outputs}
@@ -166,7 +163,7 @@ class JadeAuthTrainer(pl.LightningModule):
         if self.lr_scheduler_name == 'cosine':
             scheduler = optim.lr_scheduler.CosineAnnealingLR(
                 optimizer,
-                T_max=self.max_epochs - self.warmup_epochs,
+                T_max=max(1, self.max_epochs - self.warmup_epochs),
             )
         elif self.lr_scheduler_name == 'onecycle':
             scheduler = optim.lr_scheduler.OneCycleLR(

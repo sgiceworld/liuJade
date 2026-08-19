@@ -1,0 +1,49 @@
+{
+  "model_type": "JadeAuthModel",
+  "macro_onnx": "jade_model_macro.onnx",
+  "micro_onnx": "jade_model_micro.onnx",
+  "fusion_onnx": "jade_model_fusion.onnx",
+  "input_specs": {
+    "macro": {
+      "shape": [
+        3,
+        512,
+        512
+      ],
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ]
+    },
+    "micro_tile": {
+      "shape": [
+        3,
+        224,
+        224
+      ],
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ],
+      "tile_size": 224,
+      "tile_stride": 112
+    }
+  },
+  "output_specs": {
+    "era_classes": 14,
+    "auth_classes": 2,
+    "feature_dim": 512
+  }
+}
