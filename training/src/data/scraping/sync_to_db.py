@@ -10,8 +10,8 @@ from db.models import create_database, JadePiece, Image as ImageModel
 
 def sync():
     jsonl = Path(r'D:\liuJade\annotation_data\genuine.jsonl')
+    # 唯一权威数据库 (与 inference/src/api/server.py 的 DB_PATH 一致)
     db_path = r'D:\liuJade\jade.db'
-    db_inference = r'D:\liuJade\inference\jade.db'
 
     records = []
     with open(jsonl, 'r', encoding='utf-8') as f:
@@ -34,8 +34,8 @@ def sync():
             print(f"    era={r.get('era_name','?')}({r.get('era_code','?')}) mat={r.get('material','?')}")
             if r.get('dimensions'): print(f"    dims={r.get('dimensions')}")
 
-    # Import to both DBs
-    for db in [db_path, db_inference]:
+    # Import to root DB only
+    for db in [db_path]:
         # Delete existing data
         session = create_database(db)
         session.query(ImageModel).delete()

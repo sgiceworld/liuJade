@@ -4,7 +4,8 @@
 
 遍历 jade.db 中全部玉器记录对应的书页图片, 运行 image_splitter
 自动裁剪黑底玉器照片, 按年代归档到 training_data/{年代}/,
-并追加 training_manifest.jsonl。
+追加 training_manifest.jsonl, 并回写 jade.db 的 training_image 列
+(审查接口 /ocr/review/next 优先返回该裁剪图)。
 
 年代确认策略:
 - era != '待OCR确认' → 按 era_code 归档到 {code}_{年代名}/
@@ -48,7 +49,7 @@ def main():
                     help='跳过 manifest 中已有裁剪图的记录')
     args = ap.parse_args()
 
-    con = sqlite3.connect(str(args.db))
+    con = sqlite3.connect(str(args.db), timeout=30)
     cur = con.cursor()
     rows = cur.execute(
         "SELECT p.id, p.era, p.era_code, p.authenticity, p.product_name, "
@@ -56,7 +57,6 @@ def main():
         "FROM jade_pieces p LEFT JOIN images i ON i.piece_id = p.id "
         "WHERE i.file_path IS NOT NULL"
     ).fetchall()
-    con.close()
     print(f"待处理记录: {len(rows)} 条")
 
     existing = set()
@@ -134,6 +134,12 @@ def main():
         manifest_f.write(json.dumps(rec, ensure_ascii=False) + '\n')
         manifest_f.flush()
 
+        # 同步回写数据库 (审查接口 /ocr/review/next 依赖此列)
+        cur.execute('UPDATE jade_pieces SET training_image=? WHERE id=?',
+                    (rec['training_image'], piece_id))
+        if stats['cropped'] % 50 == 0:
+            con.commit()
+
         era_counts[era_dir] = era_counts.get(era_dir, 0) + 1
         stats['cropped'] += 1
 
@@ -143,6 +149,8 @@ def main():
                   f"({el:.0f}s, {stats['cropped']/el:.1f} 张/s)")
 
     manifest_f.close()
+    con.commit()
+    con.close()
     el = time.time() - t0
     print(f"\n完成: {stats} (耗时 {el:.0f}s)")
     print("年代分布:", dict(sorted(era_counts.items())))

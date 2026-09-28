@@ -40,7 +40,7 @@ export function Settings(): React.ReactElement {
         <ul>
           <li>标注文件 (真): <code>./annotation_data/genuine.jsonl</code></li>
           <li>标注文件 (伪): <code>./annotation_data/fake.jsonl</code></li>
-          <li>数据库: <code>./jade.db</code></li>
+          <li>数据库: <code>D:\liuJade\jade.db</code></li>
         </ul>
       </section>
 

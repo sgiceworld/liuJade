@@ -54,10 +54,15 @@ def get_engine() -> JadeInferenceEngine:
     return engine
 
 
+# 项目唯一权威数据库 (绝对路径, 不受启动目录影响)
+# batch_crop.py / prepare_data.py / run_ocr.py 均以根库为准
+DB_PATH = Path(r"D:\liuJade\jade.db")
+
+
 def get_db():
     global db_session
     if db_session is None:
-        db_session = create_database('jade.db')
+        db_session = create_database(str(DB_PATH))
     return db_session
 
 
@@ -127,9 +132,9 @@ def ocr_review_next():
         raw = piece.images[0].file_path
         image_path = raw.replace('\\', '/') if raw else None
 
-    # Count remaining (un-reviewed or low confidence)
+    # Count remaining (same filter as the queue above)
     remaining = db.query(JadePiece).filter(
-        (JadePiece.annotation_confidence == None) | (JadePiece.annotation_confidence < 5)
+        (JadePiece.annotation_confidence == None) | (JadePiece.annotation_confidence < 3)
     ).count()
 
     # Review tag info
@@ -137,28 +142,47 @@ def ocr_review_next():
     review_status = getattr(piece, 'review_status', None) or 'imported'
     last_reviewed = getattr(piece, 'last_reviewed_at', None) or ''
 
-    # Split page into artifact photo + text region
+    # 优先使用批量裁剪图 (batch_crop.py 产物, 已回写 training_image 列);
+    # 无裁剪图时回退到现场 split_page 分割原始书页
     artifact_url = None
     text_url = None
     ocr_fields = {}
 
-    if image_path:
+    crop_path = None
+    crop_rel = (piece.training_image or '').replace('\\', '/')
+    if crop_rel:
+        cand = IMAGE_ROOT / crop_rel
+        if cand.exists():
+            crop_path = cand
+
+    is_museum = (piece.source_type == '馆藏')
+
+    if crop_path:
+        # 批量裁剪图直接作为玉器照片; 原始书页作为文字描述上下文
+        artifact_url = f'/images/{crop_rel}'
+        if image_path and (IMAGE_ROOT / image_path.replace('\\', '/')).exists():
+            text_url = f'/images/{image_path}'
+    elif image_path:
         full_path = IMAGE_ROOT / image_path.replace('\\', '/')
         if full_path.exists():
-            try:
-                from utils.image_splitter import split_page
-                split = split_page(str(full_path))
-                if split['has_artifact']:
-                    # Convert artifact/text paths to relative URLs
-                    art_rel = Path(split['artifact_path']).relative_to(IMAGE_ROOT) if split['artifact_path'] else None
-                    txt_rel = Path(split['text_path']).relative_to(IMAGE_ROOT) if split['text_path'] else None
-                    artifact_url = f"/images/{str(art_rel).replace(chr(92), '/')}" if art_rel else None
-                    text_url = f"/images/{str(txt_rel).replace(chr(92), '/')}" if txt_rel else None
-            except Exception as e:
-                print(f"Split error: {e}")
+            if is_museum:
+                # 馆藏单物照片不适用书页分割算法, 直接用原图作玉器照片
+                artifact_url = f'/images/{image_path}'
+            else:
+                try:
+                    from utils.image_splitter import split_page
+                    split = split_page(str(full_path))
+                    if split['has_artifact']:
+                        # Convert artifact/text paths to relative URLs
+                        art_rel = Path(split['artifact_path']).relative_to(IMAGE_ROOT) if split['artifact_path'] else None
+                        txt_rel = Path(split['text_path']).relative_to(IMAGE_ROOT) if split['text_path'] else None
+                        artifact_url = f"/images/{str(art_rel).replace(chr(92), '/')}" if art_rel else None
+                        text_url = f"/images/{str(txt_rel).replace(chr(92), '/')}" if txt_rel else None
+                except Exception as e:
+                    print(f"Split error: {e}")
 
             # Run OCR (skip if already reviewed — use cached results)
-            if review_count == 0:
+            if review_count == 0 and not is_museum:
                 try:
                     from utils.ocr_engine import ocr_single_page
                     ocr_fields = ocr_single_page(str(full_path))
@@ -182,6 +206,7 @@ def ocr_review_next():
             'notes': piece.notes or '',
             'image_path': image_path,
             'image_url': f'/images/{image_path}' if image_path else None,
+            'training_image': crop_rel or None,
             'artifact_url': artifact_url,
             'text_url': text_url,
             'remaining': remaining,
@@ -194,6 +219,34 @@ def ocr_review_next():
 
 
 TRAINING_DATA_DIR = Path(r"D:\liuJade\training_data")
+ANNOTATION_JSONL = Path(r"D:\liuJade\annotation_data\genuine.jsonl")
+
+
+def _update_manifest_entry(piece_id: str, updates: dict):
+    """原地更新 training_manifest.jsonl 中该 piece_id 的既有条目 (不追加新行)。"""
+    manifest_file = TRAINING_DATA_DIR / "training_manifest.jsonl"
+    if not manifest_file.exists():
+        return
+    try:
+        lines = []
+        with open(manifest_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    lines.append(line)
+                    continue
+                if rec.get('piece_id') == piece_id:
+                    rec.update(updates)
+                lines.append(json.dumps(rec, ensure_ascii=False))
+        with open(manifest_file, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines) + '\n')
+    except Exception as e:
+        print(f"Manifest update error: {e}")
+
 
 @app.post("/ocr/review/confirm")
 def ocr_review_confirm(data: dict):
@@ -229,16 +282,44 @@ def ocr_review_confirm(data: dict):
     if not hasattr(piece, 'notes_extra'): pass
     try: piece.notes = f"{piece.notes or ''} [审查#{review_count}]".strip()
     except: pass
-    if training_image_path:
-        piece.training_image = training_image_path
 
     if data.get('dimensions'):
         piece.dimensions = json.dumps(data['dimensions'], ensure_ascii=False)
 
     # ── Save cropped artifact to training set ──
+    era_names_map = {'A':'文化期','B':'商代','C':'春秋','D':'战国','E':'秦汉',
+        'F':'三国两晋南北朝','G':'唐','H':'宋','I':'金元','J':'明',
+        'K':'清','L':'民国','M':'出口创汇','N':'现代'}
+    era_cn = era_names_map.get(era_code, 'Unknown')
     training_image_path = None
-    if not is_non_jade and era_code:
-        # Find the cropped artifact image from page split
+
+    existing_crop = (piece.training_image or '').replace('\\', '/')
+    existing_abs = IMAGE_ROOT / existing_crop if existing_crop else None
+
+    if not is_non_jade and era_code and existing_abs and existing_abs.exists():
+        # ── 批量裁剪图: 从 A_待OCR确认 迁移到确认年代目录, 修正文件名前缀 ──
+        era_dir = TRAINING_DATA_DIR / f"{era_code}_{data.get('era') or piece.era or era_cn}"
+        era_dir.mkdir(parents=True, exist_ok=True)
+
+        import shutil
+        new_name = existing_abs.name
+        prefix = f"{era_code}_"
+        if not new_name.startswith(prefix):
+            parts = new_name.split('_', 1)
+            new_name = prefix + (parts[1] if len(parts) > 1 else new_name)
+        dest_path = era_dir / new_name
+        if dest_path != existing_abs:
+            if dest_path.exists():
+                # 目标名冲突: 加序号
+                i = 1
+                while dest_path.exists():
+                    dest_path = era_dir / f"{prefix}{new_name[len(prefix):].split('.')[0]}_{i}.png"
+                    i += 1
+            shutil.move(str(existing_abs), str(dest_path))
+        training_image_path = str(dest_path.relative_to(IMAGE_ROOT)).replace('\\', '/')
+    elif not is_non_jade and era_code:
+        # ── 无批量裁剪图: 归档训练图 ──
+        # 馆藏单物照片直接归档原图; 书页记录现场分割并复制裁剪图 (原流程)
         page_image = None
         if piece.images and len(piece.images) > 0:
             raw = piece.images[0].file_path
@@ -247,24 +328,19 @@ def ocr_review_confirm(data: dict):
                 page_image = None
 
         if page_image:
-            # Look for artifact crop (generated by split_page during review)
-            art_crop = page_image.parent / f"{page_image.stem}_artifact.png"
-            if art_crop.exists():
-                # Organize by era for training
-                era_dir = TRAINING_DATA_DIR / f"{era_code}_{data.get('era', 'Unknown')}"
+            is_museum = (piece.source_type == '馆藏')
+            src_image = page_image if is_museum else \
+                (page_image.parent / f"{page_image.stem}_artifact.png")
+            if src_image.exists():
+                era_dir = TRAINING_DATA_DIR / f"{era_code}_{data.get('era') or piece.era or era_cn}"
                 era_dir.mkdir(parents=True, exist_ok=True)
 
-                # Copy with meaningful filename
-                era_names_map = {'A':'文化期','B':'商代','C':'春秋','D':'战国','E':'秦汉',
-                    'F':'三国两晋南北朝','G':'唐','H':'宋','I':'金元','J':'明',
-                    'K':'清','L':'民国','M':'出口创汇','N':'现代'}
-                era_cn = era_names_map.get(era_code, 'Unknown')
-                dest_name = f"{era_cn}_{piece.id[:8]}_{page_image.stem[:30]}_artifact.png"
-                dest_path = era_dir / dest_name
-
                 import shutil
-                shutil.copy2(art_crop, dest_path)
-                training_image_path = str(dest_path.relative_to(IMAGE_ROOT))
+                suffix = src_image.suffix or '.jpg'
+                dest_name = f"{era_cn}_{piece.id[:8]}_{page_image.stem[:30]}{suffix}"
+                dest_path = era_dir / dest_name
+                shutil.copy2(src_image, dest_path)
+                training_image_path = str(dest_path.relative_to(IMAGE_ROOT)).replace('\\', '/')
 
                 # Append to training manifest
                 manifest_file = TRAINING_DATA_DIR / "training_manifest.jsonl"
@@ -283,12 +359,28 @@ def ocr_review_confirm(data: dict):
                 with open(manifest_file, 'a', encoding='utf-8') as f:
                     f.write(json.dumps(manifest_entry, ensure_ascii=False) + '\n')
 
+    # 修复: 此前赋值发生在计算 training_image_path 之前, 从未真正写入数据库
+    if training_image_path:
+        piece.training_image = training_image_path
+
+    # ── 更新 manifest 中该记录的既有条目 (原地更新, 不重复追加) ──
+    if existing_crop or training_image_path:
+        _update_manifest_entry(piece.id, {
+            'era_code': era_code,
+            'era_name': piece.era or era_cn,
+            'authenticity': authenticity,
+            'product_name': piece.product_name,
+            'material': piece.material,
+            'training_image': (training_image_path or existing_crop).replace('\\', '/'),
+            'reviewed_at': datetime.now().isoformat(),
+        })
+
     db.commit()
 
     # ── Update JSONL manifest entry ──
     if training_image_path:
         try:
-            jsonl_file = Path(r"D:\liuJade\annotation_data\genuine.jsonl")
+            jsonl_file = ANNOTATION_JSONL
             if jsonl_file.exists():
                 records = []
                 with open(jsonl_file, 'r', encoding='utf-8') as f:
