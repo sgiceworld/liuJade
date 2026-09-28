@@ -29,10 +29,21 @@ export function Annotate(): React.ReactElement {
   const [editRecord, setEditRecord] = useState<Partial<AnnotationData> | undefined>(undefined);
   const [editPieceId, setEditPieceId] = useState<string>('');
   const [editImage, setEditImage] = useState<string>('');
+  const [editPage, setEditPage] = useState<string>('');   // 原书页 (未经裁剪)
+  const [viewMode, setViewMode] = useState<'crop' | 'page'>('crop');
   const [imgVersion, setImgVersion] = useState(0);
   const [imgLoading, setImgLoading] = useState(false);
   const [imgError, setImgError] = useState(false);
   const imgTimer = React.useRef<ReturnType<typeof setTimeout>>();
+
+  // 切换显示视图: 裁剪图 / 原书页
+  const switchView = (m: 'crop' | 'page') => {
+    setViewMode(m);
+    setImgError(false);
+    setImgLoading(true);
+    setImgVersion(v => v + 1);
+  };
+  const shownImage = viewMode === 'page' && editPage ? editPage : editImage;
 
   // Preview state
   const [records, setRecords] = useState<JadeRecord[]>([]);
@@ -59,8 +70,10 @@ export function Annotate(): React.ReactElement {
       annotationConfidence: next.annotation_confidence,
     });
     const page = next.image_paths?.[0] || '';
-    // Only use artifact crop if reviewed (training_image exists); otherwise page image
+    // 默认显示裁剪图; 无裁剪图时显示原书页
+    setEditPage(page);
     setEditImage(next.training_image || page);
+    setViewMode(next.training_image ? 'crop' : 'page');
     setImgVersion(v => v + 1);
     setImgError(false);
     setCurrentIndex(nextIdx);
@@ -81,6 +94,7 @@ export function Annotate(): React.ReactElement {
       } else {
         setEditRecord(undefined);
         setEditImage('');
+        setEditPage('');
         setEditPieceId('');
         setMode('preview');
       }
@@ -137,7 +151,7 @@ export function Annotate(): React.ReactElement {
 
       <div className="toggle-group" style={{ marginBottom: 20 }}>
         <button className={`toggle-btn ${mode === 'new' ? 'active genuine' : ''}`}
-          onClick={() => { setMode('new'); setEditRecord(undefined); setEditImage(''); }}>✏️ {editRecord ? '编辑标注' : '新建标注'}</button>
+          onClick={() => { setMode('new'); setEditRecord(undefined); setEditImage(''); setEditPage(''); }}>✏️ {editRecord ? '编辑标注' : '新建标注'}</button>
         <button className={`toggle-btn ${mode === 'preview' ? 'active genuine' : ''}`}
           onClick={() => setMode('preview')}>👁️ 预览标注 ({totalRecords || '...'})</button>
       </div>
@@ -157,7 +171,7 @@ export function Annotate(): React.ReactElement {
               <AnnotationForm
                 key={editPieceId || 'new'}
                 onSubmit={handleSubmit}
-                onCancel={() => { setMode('preview'); setEditRecord(undefined); setEditImage(''); setEditPieceId(''); }}
+                onCancel={() => { setMode('preview'); setEditRecord(undefined); setEditImage(''); setEditPage(''); setEditPieceId(''); }}
                 initialValues={editRecord}
               />
             </div>
@@ -181,7 +195,8 @@ export function Annotate(): React.ReactElement {
                         </button>
                       </div>
                     )}
-                    <img src={`${API}/images/${editImage.replace(/\\/g, '/')}?v=${imgVersion}`} alt="玉器图片" className="image-viewer-img"
+                    <img src={`${API}/images/${shownImage.replace(/\\/g, '/')}?v=${imgVersion}`}
+                      alt={viewMode === 'page' ? '原书页' : '玉器裁剪图'} className="image-viewer-img"
                       style={{ display: imgError ? 'none' : 'block' }}
                       onLoadStart={() => {
                         clearTimeout(imgTimer.current);
@@ -192,17 +207,40 @@ export function Annotate(): React.ReactElement {
                         clearTimeout(imgTimer.current); setImgLoading(false); setImgError(true);
                       }} />
                   </div>
-                  <div className="image-viewer-nav" style={{ justifyContent: 'space-between', padding: '6px 10px' }}>
+                  <div className="image-viewer-nav" style={{ justifyContent: 'space-between', padding: '6px 10px', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.75rem', color: 'var(--bronze-600)' }}>
                       {editRecord?.productName || '玉器预览'}
                     </span>
-                    <button className="btn btn-secondary btn-sm"
-                      onClick={() => { setImgError(false); setImgLoading(true); setImgVersion(v => v + 1); }}
-                      title="重新加载图片"
-                      style={{ padding: '2px 8px', fontSize: '0.7rem' }}>
-                      🔄 刷新图片
-                    </button>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {editImage && editImage !== editPage && (
+                        <button className={`btn btn-sm ${viewMode === 'crop' ? 'btn-primary' : 'btn-secondary'}`}
+                          onClick={() => switchView('crop')}
+                          title="黑底裁剪的玉器照片"
+                          style={{ padding: '2px 8px', fontSize: '0.7rem' }}>
+                          🔬 裁剪图
+                        </button>
+                      )}
+                      {editPage && (
+                        <button className={`btn btn-sm ${viewMode === 'page' ? 'btn-primary' : 'btn-secondary'}`}
+                          onClick={() => switchView('page')}
+                          title="未经裁剪的原始书页"
+                          style={{ padding: '2px 8px', fontSize: '0.7rem' }}>
+                          📄 原书页
+                        </button>
+                      )}
+                      <button className="btn btn-secondary btn-sm"
+                        onClick={() => { setImgError(false); setImgLoading(true); setImgVersion(v => v + 1); }}
+                        title="重新加载图片"
+                        style={{ padding: '2px 8px', fontSize: '0.7rem' }}>
+                        🔄
+                      </button>
+                    </div>
                   </div>
+                  {viewMode === 'page' && editPage && (
+                    <div style={{ fontSize: '0.72rem', color: 'var(--bronze-500)', padding: '2px 10px 8px' }}>
+                      📄 原书页（未裁剪）— 供人工核对页面文字描述，OCR 结果可能有误
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="image-viewer-empty">
