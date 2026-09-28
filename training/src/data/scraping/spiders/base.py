@@ -86,9 +86,9 @@ class BaseJadeSpider(ABC):
         self.image_dir = self.output_dir / self.config.IMAGE_DIR
         self.image_dir.mkdir(parents=True, exist_ok=True)
 
-        # 请求计数: 总数 + 按域名 (500 请求/天/域名)
+        # 请求计数: 总数 + 按域名按天 (500 请求/天/域名, 次日自动重置)
         self.request_count = 0
-        self.request_counts: Dict[str, int] = {}
+        self.request_counts: Dict[str, int] = {}  # key: f"{host}|{YYYY-MM-DD}"
         self.robots_cache: Dict[str, bool] = {}
         self.session = requests.Session()
         self.session.headers.update({
@@ -116,7 +116,8 @@ class BaseJadeSpider(ABC):
             try:
                 response = self.session.get(url, **kwargs)
                 self.request_count += 1
-                self.request_counts[host] = self.request_counts.get(host, 0) + 1
+                key = f"{host}|{datetime.now().strftime('%Y-%m-%d')}"
+                self.request_counts[key] = self.request_counts.get(key, 0) + 1
                 response.raise_for_status()
                 return response
             except (requests.ConnectionError, requests.ChunkedEncodingError) as e:
@@ -126,10 +127,11 @@ class BaseJadeSpider(ABC):
                 self._respect_rate_limit(host)
 
     def _respect_rate_limit(self, host: str):
-        """遵守限速规则: 随机延时 + 每日上限 (按域名)。"""
-        if self.request_counts.get(host, 0) >= self.config.MAX_REQUESTS_PER_DAY:
+        """遵守限速规则: 随机延时 + 每日上限 (按域名, 次日自动重置)。"""
+        key = f"{host}|{datetime.now().strftime('%Y-%m-%d')}"
+        if self.request_counts.get(key, 0) >= self.config.MAX_REQUESTS_PER_DAY:
             raise RuntimeError(
-                f"{self.name}: 域名 {host} 已达每日请求上限 "
+                f"{self.name}: 域名 {host} 已达今日请求上限 "
                 f"({self.config.MAX_REQUESTS_PER_DAY})"
             )
         delay = random.uniform(self.config.MIN_DELAY_SEC, self.config.MAX_DELAY_SEC)
@@ -271,6 +273,16 @@ class BaseJadeSpider(ABC):
                 self.seen_hashes = set(data.get('seen_hashes', []))
                 self.request_count = data.get('request_count', 0)
                 self.request_counts = data.get('request_counts', {})
+                # 旧格式迁移: {host: count} → {f"{host}|{date}": count}
+                # (旧 checkpoint 均为当日生成, 归属今天)
+                today = datetime.now().strftime('%Y-%m-%d')
+                migrated = {}
+                for k, v in self.request_counts.items():
+                    if isinstance(v, int) and '|' not in k:
+                        migrated[f"{k}|{today}"] = v
+                    else:
+                        migrated[k] = v
+                self.request_counts = migrated
                 self.image_seq = data.get('image_seq', 0)
                 self.processed_items = set(data.get('processed_items', []))
                 # 恢复已下载图片的 hash
