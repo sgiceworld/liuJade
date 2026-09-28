@@ -9,7 +9,7 @@
 
 import json
 from typing import List, Dict
-from ..base import BaseJadeSpider, ScraperConfig
+from ...base import BaseJadeSpider, ScraperConfig
 
 
 class GugongSpider(BaseJadeSpider):

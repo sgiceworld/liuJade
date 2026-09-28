@@ -437,6 +437,28 @@ AI 驱动的古玉鉴定与数据标注系统。面向专业古玉鉴定师和�
 
 ---
 
+### 32. 博物馆爬取落地 `2026-09-28`
+
+**用户需求：**
+> 重点解决博物馆爬取未落地问题 (Playwright 下轮再说)
+
+**实现内容：**
+- `sites.json` 站点清单落盘：P0 20 + P1 28 个真实站点，含连通性实测状态 (verified/reachable/unreachable/untested)
+- BaseJadeSpider 修复：OUTPUT_DIR 绝对路径化、图片序号断点 bug、**按域名限速** (500 请求/天/域名)、robots.txt 检查补上、run() 支持 max_items/dry_run
+- 新增 `ApiMuseumSpider` 通用 JSON-API 抽象 + **MetSpider** (164 件索引) + **ClevelandSpider** (254 件)
+- 新增 `era_map.py`：英文年代 → 14 年代映射 (neolithic→文化期 ... qing→清)，西周近似映射人工兜底
+- 新增 `import_museum_data.py`：append-only 导入标注库（禁用清表的 sync_to_db.py），幂等 (import_state.json)
+- 新增 `run_spider.py` CLI + `probe_sites.py` 国内站静态可爬性探测
+- server.py：馆藏单物照片审查兜底（不适用书页分割算法，直接原图作玉器照片）
+
+**首次爬取成果:**
+- Met: 5 图 / 2 件 (清 4 图 + 金元 1 图，高清 3126×4000)
+- Cleveland: **54 图 / 17 件** (商代 3 / 文化期 2 / 春秋 2 / 战国 1 / 金元 1 / 清 10)
+- 导入 jade.db: 馆藏 19 件 / 59 图，著录 3934 条未污染，label_code 无重复，重复导入 0 增量 (幂等验证)
+- 国内站探测：河南博物院确认为 XHR 动态加载 (初始 HTML 无藏品)
+
+---
+
 ## 技术架构总结
 
 ### 后端
@@ -445,7 +467,7 @@ AI 驱动的古玉鉴定与数据标注系统。面向专业古玉鉴定师和�
 |------|------|--------|
 | 训练 | PyTorch + Lightning + timm (ConvNeXt-V2) | 15 |
 | 推理 | ONNX Runtime + FastAPI | 8 |
-| 爬虫 | PyMuPDF + Scrapy + Playwright | 8 |
+| 爬虫 | requests + bs4 + PyMuPDF (Playwright 下轮) | 8 |
 | OCR | EasyOCR (中文) | 2 |
 | 数据库 | SQLite + SQLAlchemy | 2 |
 
