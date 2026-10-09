@@ -34,3 +34,6 @@ desktop/resources/
 models/checkpoints/
 training/data/
 training/logs/
+
+# Mobile
+models/mobile/

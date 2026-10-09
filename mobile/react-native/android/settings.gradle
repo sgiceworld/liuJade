@@ -1,0 +1,11 @@
+pluginManagement { includeBuild("../node_modules/@react-native/gradle-plugin") }
+plugins { id("com.facebook.react.settings") }
+extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
+rootProject.name = 'GuYuJianZhen'
+include ':app'
+includeBuild('../node_modules/@react-native/gradle-plugin')
+
+// react-native-nitro-image 无法被 RN CLI autolink 发现 (android 条目为 null),
+// vision-camera 的 gradle 直接 project(":react-native-nitro-image") 引用 → 手动 include
+include ':react-native-nitro-image'
+project(':react-native-nitro-image').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-nitro-image/android')
