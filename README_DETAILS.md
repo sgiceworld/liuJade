@@ -488,3 +488,17 @@ AI 驱动的古玉鉴定与数据标注系统。面向专业古玉鉴定师和�
 | 年代分类 | 14 类 (A-N) |
 | 博物馆来源 | 88 个 (P0-P3) |
 | 训练图目录 | 14 个年代分类文件夹 |
+
+### 移动端 (2026-09-30)
+
+| 模块 | 技术 | 说明 |
+|------|------|------|
+| 移动端模型 | ConvNeXt-V2 **Pico** (9.3M) × 2 + 融合头 | jade_v0.2_pico_stage4, 验证集年代 Top-1 **96.8%** (atto 基线 96.9%) |
+| INT8 量化 | 静态 QDQ (macro/micro, QUInt8, 200 校准样本) + 动态 (fusion) | 34.3MB→9.0MB/骨干, 总量 ~19MB (models/mobile/quantized/) |
+| 量化验收 | 年代确信预测一致率 **98.3%** / 真伪 100% / 概率偏差 0.019 / 端侧管线 1641ms (<5s) | 低置信翻转 (top1<0.5) 由 app 混合流程送服务器复核 |
+| RN App | React Native 0.77 + onnxruntime-react-native 1.24 | 拍照鉴定 (混合推理) / 图鉴 / 采集, 工程在 mobile/react-native/ |
+| 服务器扩展 | /images/upload + /annotations 过滤 + ?w= 缩略图 + /models/download + JADE_HOST env | 路径逃逸已修复 |
+
+注: timm 实际尺寸顺序与早期假设相反 (atto 3.7M < pico 9.3M), 故移动端 pico 大于桌面 atto;
+但量化后 ~19MB + 1641ms 均在移动端预算内。仅训练 FP32 pico 由 fcmae_ft_in1k 初始化
+(timm 无 pico in22k 版)。

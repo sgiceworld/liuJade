@@ -107,7 +107,7 @@ export function Annotate(): React.ReactElement {
   const doLoad = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const resp = await fetch(`${API}/annotations?limit=200&offset=0`);
+      const resp = await fetch(`${API}/annotations?limit=10000&offset=0`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const json = await resp.json();
       const sorted = (json.data || []).sort((a: JadeRecord, b: JadeRecord) => {
