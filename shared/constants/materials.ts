@@ -34,6 +34,6 @@ export const MATERIAL_ALIASES: Record<string, string[]> = {
   '其他': [],
 };
 
-export const SOURCE_TYPES = ['馆藏', '拍卖', '著录'] as const;
+export const SOURCE_TYPES = ['馆藏', '拍卖', '著录', '采集'] as const;
 
 export type SourceType = (typeof SOURCE_TYPES)[number];

@@ -18,7 +18,7 @@ const MATERIALS = [
   '独山玉', '绿松石', '琥珀', '其他',
 ];
 
-const SOURCE_TYPES = ['馆藏', '拍卖', '著录'];
+const SOURCE_TYPES = ['馆藏', '拍卖', '著录', '采集'];
 
 const ERA_OPTIONS = [
   { code: 'A', name: '文化期' },

@@ -189,16 +189,17 @@ data = resp.json()
 assert data["success"]
 print(f"  ✓ POST /annotations → {data['data']['label_code']}")
 
-# 查询标注列表
-resp = client.get("/annotations")
+# 查询标注列表 (全库已 4k+ 条, 用 q 过滤定位刚创建的记录)
+resp = client.get("/annotations", params={"q": data["data"]["label_code"]})
 assert resp.status_code == 200
 pieces = resp.json()["data"]
-print(f"  ✓ GET /annotations → {len(pieces)} 条记录")
+print(f"  ✓ GET /annotations?q= → {len(pieces)} 条记录")
 
 # 验证标签编码格式
 if pieces:
     p = pieces[0]
     assert "label_code" in p
+    assert p["label_code"] == data["data"]["label_code"]
     assert p["authenticity"] == "真老"
     assert p["era_code"] == "G"
     assert p["material"] == "和田白玉"

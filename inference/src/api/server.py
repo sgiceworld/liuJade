@@ -3,21 +3,25 @@
 
 本地推理 API 端点:
 - POST /authenticate   — 执行鉴定
+- POST /images/upload  — 移动端图片上传 (multipart)
 - POST /annotations     — 保存标注
-- GET  /annotations     — 列出标注
-- GET  /models/status   — 模型状态
+- GET  /annotations     — 列出标注 (支持过滤)
+- GET  /models/status   — 模型状态 (+ 移动端模型清单)
+- GET  /models/download/{filename} — 移动端模型分发
 - GET  /health          — 健康检查
 """
 
+import os
 import sys
 import json
 import uuid
 import shutil
+import hashlib
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -99,18 +103,70 @@ class AnnotationRequest(BaseModel):
 
 IMAGE_ROOT = Path(r"D:\liuJade")
 
+# 移动端模型分发目录与白名单 (Phase 2 量化产物)
+MOBILE_MODEL_DIR = IMAGE_ROOT / 'models' / 'mobile' / 'quantized'
+MOBILE_MODEL_WHITELIST = (
+    'jade_model_macro.int8.onnx',
+    'jade_model_micro.int8.onnx',
+    'jade_model_fusion.int8.onnx',
+    'jade_model_metadata.json',
+)
+
 @app.get("/health")
 def health():
     return {"status": "ok", "model_loaded": engine is not None}
 
 @app.get("/images/{filepath:path}")
-def serve_image(filepath: str):
-    """Serve scraped page images from disk."""
+def serve_image(filepath: str, w: Optional[int] = None):
+    """Serve scraped page images from disk. ?w= 生成缓存缩略图 (移动端图鉴用)。"""
     clean = filepath.replace('\\', '/')
     full_path = IMAGE_ROOT / clean
     if not full_path.exists():
         raise HTTPException(status_code=404, detail=f"Image not found: {clean}")
+    resolved = full_path.resolve()
+    if not resolved.is_relative_to(IMAGE_ROOT.resolve()):
+        raise HTTPException(status_code=403, detail="Forbidden path")
+
+    if w and w > 0:
+        cache_dir = IMAGE_ROOT / '.thumb_cache' / str(w)
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        key = hashlib.sha256(str(resolved).encode('utf-8')).hexdigest()[:16]
+        cached = cache_dir / f'{key}.jpg'
+        if not cached.exists():
+            from PIL import Image
+            with Image.open(resolved) as img:
+                img = img.convert('RGB')
+                ratio = w / img.width
+                img = img.resize((w, max(1, int(img.height * ratio))), Image.BILINEAR)
+                img.save(cached, 'JPEG', quality=85)
+        return FileResponse(cached, media_type='image/jpeg')
+
     return FileResponse(full_path, media_type="image/png")
+
+@app.post("/images/upload")
+async def upload_images(files: list[UploadFile] = File(...),
+                        types: str = Form('macro')):
+    """移动端图片上传: multipart, 返回服务器本地绝对路径 (可直接喂 /authenticate)。"""
+    type_list = types.split(',')
+    if len(type_list) != len(files):
+        raise HTTPException(status_code=400, detail='types 数量与 files 不一致')
+    saved = []
+    for f, typ in zip(files, type_list):
+        if typ not in ('macro', 'micro'):
+            raise HTTPException(status_code=400, detail=f'未知图片类型: {typ}')
+        ext = Path(f.filename or '').suffix.lower()
+        if ext not in ('.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff'):
+            raise HTTPException(status_code=400, detail=f'不支持的图片格式: {f.filename}')
+        content = await f.read()
+        if content[:3] not in (b'\xff\xd8\xff', b'\x89PN'):
+            raise HTTPException(status_code=400, detail=f'文件内容不是 JPEG/PNG: {f.filename}')
+        day = datetime.now().strftime('%Y%m%d')
+        dest_dir = IMAGE_ROOT / 'mobile_uploads' / day
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / f'{uuid.uuid4().hex}{ext}'
+        dest.write_bytes(content)
+        saved.append({'type': typ, 'path': str(dest).replace('\\', '/')})
+    return {'success': True, 'data': {'images': saved}}
 
 # ── Interactive OCR Review ──
 
@@ -641,13 +697,28 @@ def save_annotation(req: AnnotationRequest):
 
 
 @app.get("/annotations")
-def list_annotations(limit: int = 100, offset: int = 0):
-    """列出所有标注记录（分页）。"""
+def list_annotations(limit: int = 100, offset: int = 0,
+                     era_code: Optional[str] = None,
+                     authenticity: Optional[str] = None,
+                     source_type: Optional[str] = None,
+                     q: Optional[str] = None):
+    """列出标注记录（分页 + 过滤: era_code/authenticity/source_type/q）。"""
     db = get_db()
-    from sqlalchemy import func
-    total = db.query(func.count(JadePiece.id)).scalar()
+    from sqlalchemy import or_
+    query = db.query(JadePiece)
+    if era_code:
+        query = query.filter(JadePiece.era_code == era_code)
+    if authenticity:
+        query = query.filter(JadePiece.authenticity == authenticity)
+    if source_type:
+        query = query.filter(JadePiece.source_type == source_type)
+    if q:
+        like = f'%{q}%'
+        query = query.filter(or_(JadePiece.product_name.like(like),
+                                 JadePiece.label_code.like(like)))
+    total = query.count()
 
-    pieces = db.query(JadePiece).order_by(
+    pieces = query.order_by(
         JadePiece.review_count.desc(),
         JadePiece.annotation_confidence.desc(),
         JadePiece.created_at.desc(),
@@ -682,7 +753,16 @@ def list_annotations(limit: int = 100, offset: int = 0):
 
 @app.get("/models/status")
 def model_status():
-    """获取当前加载的模型状态。"""
+    """获取当前加载的模型状态 + 移动端 INT8 模型清单。"""
+    mobile_models = []
+    for name in MOBILE_MODEL_WHITELIST:
+        p = MOBILE_MODEL_DIR / name
+        if p.exists():
+            mobile_models.append({
+                'name': name,
+                'size_bytes': p.stat().st_size,
+                'sha256': hashlib.sha256(p.read_bytes()).hexdigest(),
+            })
     try:
         eng = get_engine()
         version_info = eng.model_manager.get_version_info()
@@ -692,6 +772,7 @@ def model_status():
                 'loaded': True,
                 'version': version_info.get('version', 'unknow'),
                 'providers': eng.model_manager.providers,
+                'mobile_models': mobile_models,
             },
         }
     except Exception as e:
@@ -699,6 +780,17 @@ def model_status():
             'success': False,
             'error': str(e),
         }
+
+
+@app.get("/models/download/{filename}")
+def download_model(filename: str):
+    """移动端 INT8 模型分发 (白名单限 models/mobile/quantized/)。"""
+    if filename not in MOBILE_MODEL_WHITELIST:
+        raise HTTPException(status_code=403, detail='文件名不在白名单')
+    path = MOBILE_MODEL_DIR / filename
+    if not path.exists():
+        raise HTTPException(status_code=404, detail='模型文件不存在 (先跑量化脚本)')
+    return FileResponse(path, filename=filename)
 
 
 def _append_to_annotation_file(
@@ -739,4 +831,8 @@ def _append_to_annotation_file(
 
 if __name__ == '__main__':
     import uvicorn
-    uvicorn.run(app, host='127.0.0.1', port=8720)
+    host = os.environ.get('JADE_HOST', '127.0.0.1')
+    port = int(os.environ.get('JADE_PORT', '8720'))
+    if host not in ('127.0.0.1', 'localhost'):
+        print(f"[警告] 非回环监听 {host}:{port}, 局域网设备可访问, 注意安全")
+    uvicorn.run(app, host=host, port=port)
