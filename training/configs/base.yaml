@@ -35,4 +35,4 @@ loss:
 export:
   opset_version: 17
   simplify: true
-  output_dir: "../../models"
+  output_dir: "../models"

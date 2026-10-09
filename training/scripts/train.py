@@ -110,6 +110,8 @@ def main():
                     help='不训练, 直接从 checkpoint 导出 ONNX 后退出')
     ap.add_argument('--output-dir', type=Path, default=None,
                     help='checkpoint 输出目录 (默认 models/checkpoints)')
+    ap.add_argument('--name', type=str, default='jade_v0.1',
+                    help='checkpoint 名前缀 (变体训练用, 如 jade_v0.2_pico)')
     ap.add_argument('--seed', type=int, default=42)
     args = ap.parse_args()
 
@@ -190,9 +192,15 @@ def main():
         from export import export_to_onnx
         state = torch.load(args.export_only, map_location='cpu',
                            weights_only=True)
-        model.load_state_dict(state.get('state_dict', state))
+        state = state.get('state_dict', state)
+        # Lightning ModelCheckpoint 的键带 'model.' 前缀, 剥掉以匹配裸模型
+        if any(k.startswith('model.') for k in state):
+            state = {k[len('model.'):]: v for k, v in state.items()}
+        model.load_state_dict(state)
         model.eval()
-        export_dir = Path(__file__).resolve().parent.parent.parent / 'models'
+        # 导出目录来自 config (mobile.yaml → ../../models/mobile), 相对 CWD 解析
+        export_dir = Path(cfg['export'].get('output_dir') or '../../models')
+        export_dir.mkdir(parents=True, exist_ok=True)
         export_to_onnx(
             model,
             str(export_dir / 'jade_model'),
@@ -217,7 +225,7 @@ def main():
     out_dir = args.output_dir or (Path(__file__).resolve().parent.parent.parent
                                   / 'models' / 'checkpoints')
     out_dir.mkdir(parents=True, exist_ok=True)
-    ckpt_name = f"jade_v0.1_stage{stage}" + ("_smoke" if args.smoke else "")
+    ckpt_name = f"{args.name}_stage{stage}" + ("_smoke" if args.smoke else "")
 
     checkpoint_cb = pl.callbacks.ModelCheckpoint(
         dirpath=str(out_dir),
@@ -261,7 +269,8 @@ def main():
 
         module.model.eval()
 
-        export_dir = Path(__file__).resolve().parent.parent.parent / 'models'
+        export_dir = Path(cfg['export'].get('output_dir') or '../../models')
+        export_dir.mkdir(parents=True, exist_ok=True)
         export_to_onnx(
             module.model,
             str(export_dir / 'jade_model'),

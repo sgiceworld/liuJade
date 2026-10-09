@@ -21,9 +21,9 @@ class ConvNeXtV2Backbone(nn.Module):
     """
 
     VARIANTS = {
-        'femto': 'convnextv2_femto.fcmae_ft_in22k_in1k',
+        'femto': 'convnextv2_femto.fcmae_ft_in1k',   # timm 无 femto in22k 版
         'atto': 'convnextv2_atto.fcmae_ft_in22k_in1k',
-        'pico': 'convnextv2_pico.fcmae_ft_in22k_in1k',
+        'pico': 'convnextv2_pico.fcmae_ft_in1k',     # timm 无 pico in22k 版
     }
 
     def __init__(
