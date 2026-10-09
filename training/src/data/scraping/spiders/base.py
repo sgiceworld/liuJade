@@ -120,7 +120,9 @@ class BaseJadeSpider(ABC):
                 self.request_counts[key] = self.request_counts.get(key, 0) + 1
                 response.raise_for_status()
                 return response
-            except (requests.ConnectionError, requests.ChunkedEncodingError) as e:
+            except (requests.ConnectionError,
+                    requests.exceptions.ChunkedEncodingError,
+                    requests.exceptions.ReadTimeout) as e:
                 if attempt == 2:
                     raise
                 print(f"    ⚠ 连接错误重试 ({host}): {type(e).__name__}")
@@ -274,12 +276,14 @@ class BaseJadeSpider(ABC):
                 self.request_count = data.get('request_count', 0)
                 self.request_counts = data.get('request_counts', {})
                 # 旧格式迁移: {host: count} → {f"{host}|{date}": count}
-                # (旧 checkpoint 均为当日生成, 归属今天)
-                today = datetime.now().strftime('%Y-%m-%d')
+                # 归属日期取 checkpoint 的 last_updated (跨天续跑时不计入今天)
+                ckpt_date = str(data.get('last_updated') or '')[:10]
+                if len(ckpt_date) != 10:
+                    ckpt_date = datetime.now().strftime('%Y-%m-%d')
                 migrated = {}
                 for k, v in self.request_counts.items():
                     if isinstance(v, int) and '|' not in k:
-                        migrated[f"{k}|{today}"] = v
+                        migrated[f"{k}|{ckpt_date}"] = v
                     else:
                         migrated[k] = v
                 self.request_counts = migrated

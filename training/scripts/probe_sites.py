@@ -32,6 +32,10 @@ SITES_FILE = REPO_ROOT / 'training' / 'src' / 'data' / 'scraping' / 'sites.json'
 UA = ("JadeResearchBot/1.0 (Academic Research; Ancient Jade Authentication "
       "Project)")
 
+# 国内站点直连, 海外站点走代理; --direct 强制绕过系统代理
+DIRECT = False
+_session = requests.Session()  # trust_env 在 main() 中按 --direct 设置
+
 # 装饰性图片特征 (判定藏品图时排除)
 DECOR_PATTERNS = re.compile(
     r'logo|icon|banner|nav|footer|qrcode|weixin|wechat|sprite|avatar|'
@@ -43,7 +47,7 @@ ARTIFACT_PATTERNS = re.compile(
 
 
 def fetch(url: str, timeout: int = 20) -> requests.Response:
-    resp = requests.get(url, headers={'User-Agent': UA}, timeout=timeout,
+    resp = _session.get(url, headers={'User-Agent': UA}, timeout=timeout,
                         allow_redirects=True)
     resp.raise_for_status()
     if not resp.encoding or resp.encoding.lower() == 'iso-8859-1':
@@ -55,7 +59,7 @@ def check_robots(domain: str) -> str:
     """返回 robots.txt 状态描述。"""
     url = f"https://{domain}/robots.txt"
     try:
-        r = requests.get(url, headers={'User-Agent': UA}, timeout=12)
+        r = _session.get(url, headers={'User-Agent': UA}, timeout=12)
         return f"{r.status_code}"
     except requests.RequestException:
         return 'unreachable'
@@ -85,7 +89,7 @@ def analyze_detail(html: str, detail_url: str) -> dict:
     verified = None
     for u in img_urls[:3]:
         try:
-            r = requests.head(u, headers={'User-Agent': UA}, timeout=12,
+            r = _session.head(u, headers={'User-Agent': UA}, timeout=12,
                               allow_redirects=True)
             if r.status_code == 200 and int(r.headers.get('Content-Length', 0)) >= 30_000:
                 verified = u
@@ -153,11 +157,16 @@ def probe_site(site: dict, verbose: bool = True) -> dict:
 
 
 def main():
+    global DIRECT
     ap = argparse.ArgumentParser(description='国内博物馆站点静态可爬性探测')
     ap.add_argument('--site', type=str, default=None, help='只探测指定站点 ID')
     ap.add_argument('--region', type=str, default='domestic',
                     help='探测区域 (domestic/overseas/all)')
+    ap.add_argument('--direct', action='store_true',
+                    help='直连绕过系统代理 (国内站点适用)')
     args = ap.parse_args()
+    DIRECT = args.direct
+    _session.trust_env = not DIRECT
 
     with open(SITES_FILE, encoding='utf-8') as f:
         sites = json.load(f)['sites']

@@ -103,10 +103,10 @@ class ApiMuseumSpider(BaseJadeSpider):
 
             for item in items:
                 detail = self.parse_detail(item.get('detail_url', ''))
-                # 临时错误 (如 API 503) 不标记为已处理, 下次续跑重试
-                if detail.get('skip_reason') != 'API error':
-                    self.processed_items.add(item['item_id'])
                 if detail.get('skip_reason'):
+                    # 临时错误 (如 API 503) 不标记为已处理, 下次续跑重试
+                    if detail['skip_reason'] != 'API error':
+                        self.processed_items.add(item['item_id'])
                     skipped += 1
                     if dry_run:
                         print(f"  [skip] {item.get('item_id')}: {detail['skip_reason']}")
@@ -130,9 +130,15 @@ class ApiMuseumSpider(BaseJadeSpider):
                             if downloaded % 10 == 0:
                                 print(f"[{self.name}] Downloaded {downloaded} images...")
                             break  # 该组已得一张, 不再下载备选
+                # 全部图片尝试完毕后才标记已处理:
+                # 每日限速中断时该藏品未标记, 次日续跑重试 (已下载图由 pHash 去重)
+                self.processed_items.add(item['item_id'])
 
         except KeyboardInterrupt:
             print(f"\n[{self.name}] Interrupted. Progress saved.")
+        except RuntimeError as e:
+            # 每日请求上限已满 → 正常收尾, 次日继续
+            print(f"\n[{self.name}] 今日额度用尽, 正常收尾: {e}")
         except Exception as e:
             print(f"[{self.name}] Error: {e}")
         finally:

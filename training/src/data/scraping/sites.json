@@ -387,10 +387,10 @@
       "type": "api",
       "base_url": "https://api.vam.ac.uk",
       "entry_url": "https://api.vam.ac.uk/v2/objects/search?q=jade",
-      "status": "untested",
-      "status_note": "开放 API, 待验证",
-      "spider": null,
-      "verified_at": null
+      "status": "verified",
+      "status_note": "API 200 无 key, q=jade record_count=1622 (page_size=100, 17 页); 无 license 字段, 按 V&A 条款(非商用+署名) 记录 notes",
+      "spider": "spiders.overseas.europe.vam:VamSpider",
+      "verified_at": "2026-09-29"
     },
     {
       "id": "guimet",
