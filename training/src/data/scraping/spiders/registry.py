@@ -11,11 +11,13 @@ from .base import BaseJadeSpider
 from .overseas.north_america.met import MetSpider
 from .overseas.north_america.cleveland import ClevelandSpider
 from .overseas.europe.vam import VamSpider
+from .overseas.asia_other.tnm import TnmSpider
 from .domestic.central.gugong import GugongSpider
 
 SPIDERS: Dict[str, Type[BaseJadeSpider]] = {
     'met': MetSpider,
     'cleveland': ClevelandSpider,
     'vam': VamSpider,
+    'tnm': TnmSpider,
     'gugong': GugongSpider,  # 骨架 (需 Playwright, 下轮实现)
 }

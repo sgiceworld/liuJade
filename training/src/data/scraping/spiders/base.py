@@ -355,6 +355,9 @@ class BaseJadeSpider(ABC):
 
     # ── 主循环 ──
 
+    # 临时性失败不标记已处理 (下次续跑重试)
+    TRANSIENT_SKIP_REASONS = {'API error', '网络错误'}
+
     def run(self, max_items: int = None, dry_run: bool = False) -> int:
         """
         执行爬虫主循环。
@@ -365,6 +368,9 @@ class BaseJadeSpider(ABC):
 
         Returns:
             下载的图片数量
+
+        断点续传: 已处理藏品下次运行跳过; 每日限速中断时未完成藏品
+        不标记, 次日续跑重试 (已下载图由 pHash 去重)。
         """
         print(f"[{self.name}] Starting crawl: {self.museum_name_cn}")
         print(f"  Output: {self.output_dir}")
@@ -373,9 +379,12 @@ class BaseJadeSpider(ABC):
 
         downloaded = 0
         skipped = 0
+        skip_reasons: Dict[str, int] = {}
 
         try:
             items = self.discover_items()
+            # 断点续传: 已处理过的藏品跳过 (下次运行继续往后推进)
+            items = [it for it in items if it['item_id'] not in self.processed_items]
             if max_items:
                 items = items[:max_items]
             print(f"[{self.name}] Processing {len(items)} items")
@@ -384,26 +393,51 @@ class BaseJadeSpider(ABC):
                 # 获取详情页数据
                 detail = self.parse_detail(item.get('detail_url', ''))
                 if detail.get('skip_reason'):
+                    # 临时错误不标记已处理, 下次续跑重试
+                    if (not dry_run and
+                            detail['skip_reason'] not in self.TRANSIENT_SKIP_REASONS):
+                        self.processed_items.add(item['item_id'])
                     skipped += 1
+                    reason = detail['skip_reason']
+                    skip_reasons[reason] = skip_reasons.get(reason, 0) + 1
+                    if dry_run:
+                        print(f"  [skip] {item.get('item_id')}: {reason}")
                     continue
-                image_urls = detail.get('image_urls', item.get('image_urls', []))
+                # 图片组: 组内依次回退 (第一张成功即停), 无组时退回 discover 候选
+                groups = detail.get('image_groups') or \
+                    [[u] for u in (detail.get('image_urls')
+                                   or item.get('image_urls', []))]
 
-                for url in image_urls:
+                for group in groups:
+                    urls = group if isinstance(group, (list, tuple)) else [group]
                     if dry_run:
                         print(f"  [dry-run] {item.get('item_id')}: "
-                              f"{detail.get('title', '')[:40]} → {url[:80]}")
+                              f"{detail.get('title', '')[:40]} → {urls[0][:80]}")
                         continue
-                    metadata = self.download_image(
-                        url, item_id=item.get('item_id'),
-                        extra=detail.get('extra_metadata'),
-                    )
-                    if metadata:
-                        downloaded += 1
-                        if downloaded % 10 == 0:
-                            print(f"[{self.name}] Downloaded {downloaded} images...")
+                    for url in urls:
+                        try:
+                            metadata = self.download_image(
+                                url, item_id=item.get('item_id'),
+                                extra=detail.get('extra_metadata'),
+                            )
+                        except requests.HTTPError as e:
+                            # 404 等 → 尝试组内下一候选, 不中断整轮
+                            print(f"    ⚠ 图片 HTTP {e.response.status_code}: {url[:80]}")
+                            continue
+                        if metadata:
+                            downloaded += 1
+                            if downloaded % 10 == 0:
+                                print(f"[{self.name}] Downloaded {downloaded} images...")
+                            break  # 该组已得一张, 不再下载备选
+                # 全部图片尝试完毕后才标记已处理 (dry-run 不标记)
+                if not dry_run:
+                    self.processed_items.add(item['item_id'])
 
         except KeyboardInterrupt:
             print(f"\n[{self.name}] Interrupted. Progress saved.")
+        except RuntimeError as e:
+            # 每日请求上限已满 → 正常收尾, 次日继续
+            print(f"\n[{self.name}] 今日额度用尽, 正常收尾: {e}")
         except Exception as e:
             print(f"[{self.name}] Error: {e}")
         finally:
@@ -411,4 +445,7 @@ class BaseJadeSpider(ABC):
 
         print(f"[{self.name}] Done. Downloaded {downloaded} images "
               f"({skipped} skipped). Total requests: {self.request_count}")
+        if skip_reasons:
+            print(f"  skip 分布: " + ', '.join(
+                f"{k}×{v}" for k, v in skip_reasons.items()))
         return downloaded

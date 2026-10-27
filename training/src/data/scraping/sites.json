@@ -432,10 +432,10 @@
       "type": "static",
       "base_url": "https://www.tnm.jp",
       "entry_url": "https://www.tnm.jp/modules/r_collection/",
-      "status": "untested",
-      "status_note": "藏品检索页, 待探测",
-      "spider": null,
-      "verified_at": null
+      "status": "verified",
+      "status_note": "静态可爬 (2026-10-27 复测): 搜索须用表单参数 controller=list&search[seisakuchi]=中国 (制作地中国共106件, start=100 偏移分页); search_kw/mode=search 会被站点忽略返回默认展厅列表。详情 dt/dd 中文字段, .desc-img 内 L_{n}.jpg 主图 + LL_{n}.jpg 放大图。国内直连不通须走系统代理 (HTTPS_PROXY)。⚠ WAF 对持续请求敏感 (约300请求后 SSL 断连), 爬虫 8-15s 延时, 建议每日小批量续跑",
+      "spider": "spiders.overseas.asia_other.tnm:TnmSpider",
+      "verified_at": "2026-10-27"
     },
     {
       "id": "korea",

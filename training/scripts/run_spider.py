@@ -22,6 +22,12 @@ from data.scraping.spiders.registry import SPIDERS  # noqa: E402
 
 
 def main():
+    # Windows GBK 控制台下打印 ⚠ 等字符会崩溃, 统一 UTF-8 输出
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding='utf-8', errors='replace')
+        except (AttributeError, ValueError):
+            pass
     ap = argparse.ArgumentParser(description='古玉鉴真博物馆爬虫')
     ap.add_argument('--spider', type=str, default='list',
                     help='爬虫 ID (met/cleveland/gugong/list)')

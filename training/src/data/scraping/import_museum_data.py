@@ -86,11 +86,12 @@ def group_by_item(rows: list) -> dict:
 def build_annotation_record(item_id: str, group: list, now: datetime,
                             login_number: str, label_code: str) -> dict:
     """聚合组 → 标注记录 (对齐 genuine.jsonl 现有字段)。"""
-    from data.scraping.spiders.era_map import map_material
+    from data.scraping.spiders.era_map import map_material, map_material_zh
     first = group[0]
     era_code = first.get('era_mapped_code') or 'A'
     era_name = first.get('era_mapped_name') or '待OCR确认'
-    material = map_material(first.get('material_raw') or '')
+    material = (map_material_zh(first.get('material_raw') or '')
+                or map_material(first.get('material_raw') or ''))
     if not material:
         material = '和田白玉'
     title = first.get('title') or ''

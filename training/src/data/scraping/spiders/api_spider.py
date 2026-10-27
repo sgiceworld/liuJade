@@ -10,7 +10,7 @@
 - "offset":    服务端 skip/limit 分页 (Cleveland)
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from .base import BaseJadeSpider, ScraperConfig
 from .era_map import map_era, map_material, is_approx_era
@@ -81,72 +81,6 @@ class ApiMuseumSpider(BaseJadeSpider):
     def _is_full_record(raw: dict) -> bool:
         """objectIDs 模式的搜索结果只有 {objectID}, 完整记录需另取。"""
         return 'objectID' not in raw or 'title' in raw or 'primaryImage' in raw
-
-    # ── 主循环 (带图片回退: 原图被拒时依次尝试备选) ──
-
-    def run(self, max_items: int = None, dry_run: bool = False) -> int:
-        print(f"[{self.name}] Starting crawl: {self.museum_name_cn}")
-        print(f"  Output: {self.output_dir}")
-        print(f"  Rate limit: {self.config.MIN_DELAY_SEC}-{self.config.MAX_DELAY_SEC}s delay, "
-              f"max {self.config.MAX_REQUESTS_PER_DAY} req/day/domain")
-
-        downloaded = 0
-        skipped = 0
-
-        try:
-            items = self.discover_items()
-            # 断点续传: 已处理过的藏品跳过 (下次运行继续往后推进)
-            items = [it for it in items if it['item_id'] not in self.processed_items]
-            if max_items:
-                items = items[:max_items]
-            print(f"[{self.name}] Processing {len(items)} items")
-
-            for item in items:
-                detail = self.parse_detail(item.get('detail_url', ''))
-                if detail.get('skip_reason'):
-                    # 临时错误 (如 API 503) 不标记为已处理, 下次续跑重试
-                    if detail['skip_reason'] != 'API error':
-                        self.processed_items.add(item['item_id'])
-                    skipped += 1
-                    if dry_run:
-                        print(f"  [skip] {item.get('item_id')}: {detail['skip_reason']}")
-                    continue
-                groups = detail.get('image_groups') or \
-                    [[u] for u in detail.get('image_urls', [])]
-
-                for group in groups:
-                    urls = group if isinstance(group, (list, tuple)) else [group]
-                    if dry_run:
-                        print(f"  [dry-run] {item.get('item_id')}: "
-                              f"{detail.get('title', '')[:40]} → {urls[0][:80]}")
-                        continue
-                    for url in urls:
-                        metadata = self.download_image(
-                            url, item_id=item.get('item_id'),
-                            extra=detail.get('extra_metadata'),
-                        )
-                        if metadata:
-                            downloaded += 1
-                            if downloaded % 10 == 0:
-                                print(f"[{self.name}] Downloaded {downloaded} images...")
-                            break  # 该组已得一张, 不再下载备选
-                # 全部图片尝试完毕后才标记已处理:
-                # 每日限速中断时该藏品未标记, 次日续跑重试 (已下载图由 pHash 去重)
-                self.processed_items.add(item['item_id'])
-
-        except KeyboardInterrupt:
-            print(f"\n[{self.name}] Interrupted. Progress saved.")
-        except RuntimeError as e:
-            # 每日请求上限已满 → 正常收尾, 次日继续
-            print(f"\n[{self.name}] 今日额度用尽, 正常收尾: {e}")
-        except Exception as e:
-            print(f"[{self.name}] Error: {e}")
-        finally:
-            self._save_checkpoint()
-
-        print(f"[{self.name}] Done. Downloaded {downloaded} images "
-              f"({skipped} skipped). Total requests: {self.request_count}")
-        return downloaded
 
     # ── 公共映射工具 (子类复用) ──
 
