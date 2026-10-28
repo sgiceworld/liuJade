@@ -2,18 +2,22 @@
 古玉鉴真 — 东京国立博物馆爬虫 (静态 HTML)
 
 - 搜索: /modules/r_collection/index.php?controller=list
-        &search[seisakuchi]=中国&start={n} (制作地=中国, 106 件, 每页 100)
+        &search[{key}]={value}&lang=zh_cn&start={n}
   注意: search_kw / mode=search 参数会被站点忽略 (返回默认展厅列表),
         必须用表单真实参数 search[keyword] / search[seisakuchi] 等。
+- 搜索轴 (SEARCH_AXES):
+  - seisakuchi=中国 106 件已于 2026-10-27 全量处理 (命中玉器 1 件), 停用
+  - keyword 轴 (2026-10-28 探测): 石・玉 4 件 / 玉 8 件 / 玛瑙 1 件;
+    软玉、翡翠无结果 (站点为全文检索, 藏品描述无此词)
+  - 列表页搜索框为 Google CSE 站内搜索, 表单无 bunrui 等结构化下拉
 - 图片: 搜索页 M_{n}.jpg 缩略图 → 详情页 .desc-img 内 L_{n}.jpg 主图
         + LL_{n}.jpg 放大图 (同号, 放大图非每件都有)
 - 过滤: 材质形状命中中文材质表 (玉/翡翠/玛瑙等) 且 制作地含"中国"
 - 详情: controller=dtl&colid={id} — 年代/材质形状/制作地/尺寸/机构管理序号
 - 网络: 国内直连 tnm.jp 不通, 需走系统代理 (启动时设 HTTPS_PROXY);
         站点 WAF 对持续请求敏感 (约300请求后 SSL 断连), 建议每日小批量续跑
-- TODO (2026-10-28 探索): 在线藏品模块仅约500件展品, 制作地=中国轴
-  只有少量玉器 (106 件中 1 件); 待试 search[keyword]=石・玉 / 软玉 /
-  分类=工艺 等轴扩大覆盖面; 更全的来源可集成 ColBase (colbase.nich.go.jp)
+        (每日 ≤30 请求, 见 docs/scraping_handoff.md)
+- 更全的日本馆藏来源: ColBase (colbase.nich.go.jp), 待评估
 """
 
 import re
@@ -24,7 +28,7 @@ from ...era_map import map_era_zh, is_approx_era_zh, map_material_zh
 
 TNM_BASE = 'https://www.tnm.jp'
 SEARCH_TPL = (TNM_BASE + '/modules/r_collection/index.php?controller=list'
-              '&search[seisakuchi]={place}&lang=zh_cn&start={start}')
+              '&search[{key}]={value}&lang=zh_cn&start={start}')
 DETAIL_TPL = (TNM_BASE + '/modules/r_collection/index.php'
               '?controller=dtl&colid={colid}&lang=zh_cn')
 IMG_TPL = TNM_BASE + '/uploads/r_collection/{size}_{n}.jpg'
@@ -38,8 +42,13 @@ def _strip_tags(s: str) -> str:
 class TnmSpider(BaseJadeSpider):
     """东京国立博物馆玉器藏品爬虫 (静态 HTML, 首个非 API 蜘蛛)。"""
 
-    # 制作地=中国: 106 件 (2026-10-27 实测), 含绘画等非玉, 详情级过滤
-    place_queries = ['中国']
+    # 搜索轴: (表单字段, 取值), 2026-10-28 探测结果见模块 docstring
+    # 关键词轴结果与制作地轴有重叠, 按 item_id 去重; 软玉/翡翠轴无结果不列
+    SEARCH_AXES = [
+        ('keyword', '石・玉'),
+        ('keyword', '玉'),
+        ('keyword', '玛瑙'),
+    ]
 
     def __init__(self, config=None):
         super().__init__(
@@ -59,17 +68,17 @@ class TnmSpider(BaseJadeSpider):
 
     def discover_items(self) -> List[Dict]:
         items = []
-        for place in self.place_queries:
+        for key, value in self.SEARCH_AXES:
             start = 0
             while True:
-                url = SEARCH_TPL.format(place=place, start=start)
+                url = SEARCH_TPL.format(key=key, value=value, start=start)
                 html = self.get(url).text
                 # 搜索结果: colid → 缩略图 成对出现 (每 <li> 一个藏品)
                 pairs = re.findall(
                     r'controller=dtl&colid=([A-Z0-9]+)[^>]*>.*?'
                     r'src=["\']([^"\']*r_collection/M_(\d+)\.jpg)["\']',
                     html, re.S)
-                print(f"[tnm] q={place!r} start={start}: {len(pairs)} 件")
+                print(f"[tnm] q={key}={value!r} start={start}: {len(pairs)} 件")
                 for colid, thumb, n in pairs:
                     items.append({
                         'item_id': colid,
@@ -123,8 +132,10 @@ class TnmSpider(BaseJadeSpider):
         era_raw = ' '.join(x for x in [fields.get('年代', ''),
                                        fields.get('时代', ''), title] if x)
 
-        # 过滤: 材质命中中文材质表 + 制作地中国
-        if not map_material_zh(material) or ('中国' not in place and place):
+        # 过滤: 材质形状字段常为空, 改用 材质形状+标题 联合匹配中文材质表;
+        # 制作地须含"中国" (空则放行)
+        material_hit = map_material_zh(' '.join(x for x in [material, title] if x))
+        if not material_hit or ('中国' not in place and place):
             return {'item_id': item_id, 'title': title, 'era': '',
                     'image_urls': [], 'skip_reason': 'not Chinese jade'}
 
