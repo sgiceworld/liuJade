@@ -745,12 +745,12 @@
       "subregion": "asia_other",
       "priority": "P0",
       "type": "static",
-      "base_url": "https://www.kyohaku.go.jp",
-      "entry_url": "https://www.kyohaku.go.jp/jp/collection/",
-      "status": "untested",
-      "status_note": "収蔵品データベース, 中国玉器重镇 (坂本五郎等捐赠), 待探测",
-      "spider": null,
-      "verified_at": null
+      "base_url": "https://knmdb.kyohaku.go.jp",
+      "entry_url": "https://knmdb.kyohaku.go.jp/",
+      "status": "verified",
+      "status_note": "KNMDB 館蔵品データベース静态可爬 (2026-10-28 实测): /list.html?limit=50&pageNo=N 全库浏览 ~7500件 (150页); 列表行含 国・地域/時代・世紀/分類 可预筛中国; 详情 /{id}.html 含 材質・技法/法量/指定区分; 大图 /art_images/{p}/{img}_difile2-L.jpg (~700KB)。数据库独立子域 knmdb.kyohaku.go.jp",
+      "spider": "spiders.overseas.asia_other.knmdb:KnmdbSpider",
+      "verified_at": "2026-10-28"
     },
     {
       "id": "senoku",

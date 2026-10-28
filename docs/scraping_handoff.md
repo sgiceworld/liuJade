@@ -15,15 +15,17 @@
 | met | ✅ 完成 (仅5件可商用图) | 5 | ✅ |
 | tnm | ✅ 扩轴完成 (2026-10-28) | 2 | ✅ |
 | emuseum | ❌ 已扫描无中国玉器 (2026-10-28) | 0 | - |
+| knmdb (京都国立) | 🔄 全库扫描中 (2026-10-28 启动) | - | - |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **kyohaku (京都国立博物館)** 探测: www.kyohaku.go.jp 収蔵品データベース —
-   日本藏中国玉器重镇 (坂本五郎等捐赠), 若静态/API 友好则写蜘蛛
-2. **senoku (泉屋博古館)** 探测: sen-oku.or.jp 在线藏品检索 — 住友收藏,
-   中国青铜器/玉器
+1. **knmdb 续跑**: 全库 ~7500 件扫描 (150 页), 列表级预筛国・地域=中国,
+   详情过滤 材質・技法 命中玉类; 首日跑满 500 请求配额后优雅收尾,
+   次日 run_spider --spider knmdb 续跑 (checkpoint 断点)
+2. **senoku (泉屋博古館)** 探测: sen-oku.or.jp/kyoto/collection/database/ —
+   页面 18KB 无静态链接 (疑 JS 渲染), 需挖接口; 住友收藏中国青铜器/玉器
 3. **ColBase 评估**: colbase.nich.go.jp — 注意: JS SPA (首页仅 3KB 壳),
    需先挖 JS bundle 找 API; 覆盖全日本馆藏 (未指定级别也收), 值得投入
 4. **untested 海外站探测** (sites.json): korea, taipei_npm, brooklyn, mfa,

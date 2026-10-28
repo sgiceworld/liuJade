@@ -13,6 +13,7 @@ from .overseas.north_america.cleveland import ClevelandSpider
 from .overseas.europe.vam import VamSpider
 from .overseas.asia_other.tnm import TnmSpider
 from .overseas.asia_other.emuseum import EmuseumSpider
+from .overseas.asia_other.knmdb import KnmdbSpider
 from .domestic.central.gugong import GugongSpider
 
 SPIDERS: Dict[str, Type[BaseJadeSpider]] = {
@@ -21,5 +22,6 @@ SPIDERS: Dict[str, Type[BaseJadeSpider]] = {
     'vam': VamSpider,
     'tnm': TnmSpider,
     'emuseum': EmuseumSpider,
+    'knmdb': KnmdbSpider,
     'gugong': GugongSpider,  # 骨架 (需 Playwright, 下轮实现)
 }
