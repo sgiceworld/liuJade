@@ -14,21 +14,26 @@
 | vam | ✅ 完成 | 742 | ✅ |
 | met | ✅ 完成 (仅5件可商用图) | 5 | ✅ |
 | tnm | ✅ 扩轴完成 (2026-10-28) | 2 | ✅ |
+| emuseum | ❌ 已扫描无中国玉器 (2026-10-28) | 0 | - |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **ColBase 评估**: colbase.nich.go.jp 国立文化財機構統合検索 — 若 API/静态友好,
-   新建 colbase 蜘蛛 (TNM 在线模块仅约500件展品, ColBase 覆盖更全)
-3. **untested 海外站探测** (sites.json): korea, taipei_npm, brooklyn, mfa,
+1. **kyohaku (京都国立博物館)** 探测: www.kyohaku.go.jp 収蔵品データベース —
+   日本藏中国玉器重镇 (坂本五郎等捐赠), 若静态/API 友好则写蜘蛛
+2. **senoku (泉屋博古館)** 探测: sen-oku.or.jp 在线藏品检索 — 住友收藏,
+   中国青铜器/玉器
+3. **ColBase 评估**: colbase.nich.go.jp — 注意: JS SPA (首页仅 3KB 壳),
+   需先挖 JS bundle 找 API; 覆盖全日本馆藏 (未指定级别也收), 值得投入
+4. **untested 海外站探测** (sites.json): korea, taipei_npm, brooklyn, mfa,
    guimet, asian_art_sf — 探测 → 可行则写蜘蛛
-4. **capital_museum** (static_verified) → 静态爬虫
-5. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
+5. **capital_museum** (static_verified) → 静态爬虫
+6. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
    shaanxi, nanjing, shanxi, liaoning, sichuan, guangdong, gansu, guangxi,
    fujian, jiangxi, chongqing, yin_ruins, sanxingdui
-6. **gugong** Playwright 骨架落地 (`spiders/domestic/central/gugong.py`)
-7. key_required 站点 (freer_sackler, rijksmuseum, harvard) 无 key, 暂缓
+7. **gugong** Playwright 骨架落地 (`spiders/domestic/central/gugong.py`)
+8. key_required 站点 (freer_sackler, rijksmuseum, harvard) 无 key, 暂缓
 
 ## 完成定义
 

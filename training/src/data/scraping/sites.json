@@ -57,8 +57,8 @@
       "type": "static",
       "base_url": "https://emuseum.nich.go.jp",
       "entry_url": "https://emuseum.nich.go.jp",
-      "status": "verified",
-      "status_note": "静态列表+IIIF manifest 直连 (2026-10-28 实测): 12 分野 /result?class=N&pageCnt=n 每页60件; 藏品数据无需详情页, /iiifapi/{id}000/manifest.json (id×1000) 含双语元数据; 图片 IIIF Image API 14K TIFF 源, 取 3000px JPEG; 需走代理",
+      "status": "scanned_no_jade",
+      "status_note": "2026-10-28 全库标题扫描 (1151件): 玉类命中仅日本绳文/古坟玉器、玉眼佛像、画家名、埼玉县假阳性; 《玉篇》为中国唐代写本但属纸本。库内无中国玉器——e国宝只收国宝/重要文化財, 日本藏中国玉器基本未指定级别不入库。爬虫保留 (IIIF manifest 方案可复用), 停用",
       "spider": "spiders.overseas.asia_other.emuseum:EmuseumSpider",
       "verified_at": "2026-10-28"
     },
@@ -734,6 +734,36 @@
       "entry_url": "https://www.xzmuseum.com/",
       "status": "unreachable",
       "status_note": "探测(2026-09-28): 网络错误: SSLError",
+      "spider": null,
+      "verified_at": null
+    },
+    {
+      "id": "kyohaku",
+      "name": "Kyoto National Museum",
+      "name_cn": "京都国立博物館",
+      "region": "overseas",
+      "subregion": "asia_other",
+      "priority": "P0",
+      "type": "static",
+      "base_url": "https://www.kyohaku.go.jp",
+      "entry_url": "https://www.kyohaku.go.jp/jp/collection/",
+      "status": "untested",
+      "status_note": "収蔵品データベース, 中国玉器重镇 (坂本五郎等捐赠), 待探测",
+      "spider": null,
+      "verified_at": null
+    },
+    {
+      "id": "senoku",
+      "name": "Sen-oku Hakuko Kan",
+      "name_cn": "泉屋博古館",
+      "region": "overseas",
+      "subregion": "asia_other",
+      "priority": "P0",
+      "type": "static",
+      "base_url": "https://www.sen-oku.or.jp",
+      "entry_url": "https://www.sen-oku.or.jp/collection/",
+      "status": "untested",
+      "status_note": "住友コレクション, 中国青铜器/玉器收藏, 有在线藏品检索, 待探测",
       "spider": null,
       "verified_at": null
     }
