@@ -4,6 +4,7 @@
 $ErrorActionPreference = 'Continue'
 $repo = 'D:\liuJade'
 $log = Join-Path $repo 'scraped_data\_daily_agent.log'
+$lastOut = Join-Path $repo 'scraped_data\_agent_last.txt'
 $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 "[$stamp] daily scrape agent: start" | Add-Content -Path $log -Encoding UTF8
 
@@ -34,13 +35,22 @@ $env:HTTPS_PROXY = 'http://127.0.0.1:7890'
 $env:HTTP_PROXY  = 'http://127.0.0.1:7890'
 $env:NO_PROXY    = 'localhost,127.0.0.1'
 $env:PYTHONIOENCODING = 'utf-8'
+# scrub SDK model overrides leaked from VSCode sessions (standalone CLI must pick its own model)
+Remove-Item Env:ANTHROPIC_MODEL -ErrorAction SilentlyContinue
 
-$prompt = Get-Content -Path (Join-Path $repo 'docs\daily_scrape_prompt.txt') -Raw -Encoding UTF8
+$promptFile = Join-Path $repo 'docs\daily_scrape_prompt.txt'
 
 Set-Location $repo
-& $claudeExe -p $prompt --dangerously-skip-permissions 2>&1 |
-    Tee-Object -FilePath $log -Append
+# cmd-level pipe+redirect keeps claude's UTF-8 output intact
+# (PowerShell native-command capture mangles it to UTF-16 mojibake)
+$cmd = "type `"$promptFile`" | `"$claudeExe`" -p --dangerously-skip-permissions > `"$lastOut`" 2>&1"
+cmd /c $cmd
 $code = $LASTEXITCODE
+
 $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 "[$stamp] daily scrape agent: end, exit=$code" | Add-Content -Path $log -Encoding UTF8
+if (Test-Path $lastOut) {
+    Get-Content -Path $lastOut -Encoding UTF8 |
+        Add-Content -Path $log -Encoding UTF8
+}
 exit $code
