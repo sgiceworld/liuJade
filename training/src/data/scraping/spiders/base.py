@@ -380,6 +380,7 @@ class BaseJadeSpider(ABC):
         downloaded = 0
         skipped = 0
         skip_reasons: Dict[str, int] = {}
+        consecutive_net_errors = 0
 
         try:
             items = self.discover_items()
@@ -400,6 +401,16 @@ class BaseJadeSpider(ABC):
                     skipped += 1
                     reason = detail['skip_reason']
                     skip_reasons[reason] = skip_reasons.get(reason, 0) + 1
+                    # 熔断: 连续 20 次网络错误 → 暂停 3 分钟等代理/网络恢复
+                    if reason in self.TRANSIENT_SKIP_REASONS:
+                        consecutive_net_errors += 1
+                        if consecutive_net_errors >= 20:
+                            print(f"[{self.name}] 连续 {consecutive_net_errors} 次"
+                                  f"网络错误, 暂停 180s 等待恢复...")
+                            time.sleep(180)
+                            consecutive_net_errors = 0
+                    else:
+                        consecutive_net_errors = 0
                     if dry_run:
                         print(f"  [skip] {item.get('item_id')}: {reason}")
                     continue

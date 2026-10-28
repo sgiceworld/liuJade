@@ -10,11 +10,16 @@
   作者名/作品名・文化財の名称/寄贈者 等完整字段
 - 图片: 详情页内 /art_images/{p}/{img}_difile2-L.jpg 大图 (实测 700KB+)
 - 过滤: 国・地域含中国 + 材質・技法 命中中文材质表
-- 网络: 需走代理; 无 WAF 问题, 常规限速
+- 发现缓存: _discovered.json 缓存全库扫描结果 (7 天内不重扫,
+  每日省 150 页请求; 删除该文件可强制重扫)
+- 网络: 需走代理; 代理对本站间歇性抖动, 详情页失败自动重试一轮
 """
 
+import json
 import re
 import time
+from datetime import datetime
+from pathlib import Path
 from typing import Dict, List
 
 from ...base import BaseJadeSpider
@@ -44,9 +49,22 @@ class KnmdbSpider(BaseJadeSpider):
 
     # ── 发现 ──
 
+    CACHE_DAYS = 7  # 发现结果缓存有效期 (天)
+
     def discover_items(self) -> List[Dict]:
+        # 缓存命中: 有限全库扫描, 续跑无需每日重扫 150 页
+        cache_file = self.output_dir / '_discovered.json'
+        if cache_file.exists():
+            mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
+            if (datetime.now() - mtime).days < self.CACHE_DAYS:
+                with open(cache_file, encoding='utf-8') as f:
+                    cached = json.load(f)
+                print(f"[knmdb] 发现缓存命中: {len(cached)} 件 "
+                      f"(删除 {cache_file} 可强制重扫)")
+                return cached
         items = []
         page = 1
+        complete = True
         while True:
             url = LIST_TPL.format(page=page)
             try:
@@ -60,6 +78,7 @@ class KnmdbSpider(BaseJadeSpider):
                 except Exception:
                     print(f"[knmdb] page={page} 再次失败, 本轮收尾 "
                           f"(已发现 {len(items)} 件)")
+                    complete = False
                     break
             rows = re.findall(
                 r'<div class="item" id="(\d+)">(.*?)(?=<div class="item" id='
@@ -87,6 +106,11 @@ class KnmdbSpider(BaseJadeSpider):
             if not last_pages or page >= max(last_pages):
                 break
             page += 1
+        # 写发现缓存 (仅全量扫描完成时; 部分扫描不缓存, 续跑重扫)
+        if complete:
+            cache_file = self.output_dir / '_discovered.json'
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(items, f, ensure_ascii=False)
         return items
 
     # ── 详情解析 ──
