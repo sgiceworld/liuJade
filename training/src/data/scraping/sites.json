@@ -50,17 +50,17 @@
     {
       "id": "emuseum_japan",
       "name": "e-Museum (National Institutes for Cultural Heritage)",
-      "name_cn": "日本国立文化财 e-Museum",
+      "name_cn": "e国宝 (国立文化財機構)",
       "region": "overseas",
       "subregion": "asia_other",
       "priority": "P0",
       "type": "static",
       "base_url": "https://emuseum.nich.go.jp",
       "entry_url": "https://emuseum.nich.go.jp",
-      "status": "reachable",
-      "status_note": "站点 200; 结构待 probe_sites.py 探测",
-      "spider": null,
-      "verified_at": "2026-09-28"
+      "status": "verified",
+      "status_note": "静态列表+IIIF manifest 直连 (2026-10-28 实测): 12 分野 /result?class=N&pageCnt=n 每页60件; 藏品数据无需详情页, /iiifapi/{id}000/manifest.json (id×1000) 含双语元数据; 图片 IIIF Image API 14K TIFF 源, 取 3000px JPEG; 需走代理",
+      "spider": "spiders.overseas.asia_other.emuseum:EmuseumSpider",
+      "verified_at": "2026-10-28"
     },
     {
       "id": "gugong",

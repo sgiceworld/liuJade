@@ -21,6 +21,7 @@
 """
 
 import re
+import time
 from typing import Dict, List
 
 from ...base import BaseJadeSpider
@@ -72,7 +73,19 @@ class TnmSpider(BaseJadeSpider):
             start = 0
             while True:
                 url = SEARCH_TPL.format(key=key, value=value, start=start)
-                html = self.get(url).text
+                try:
+                    html = self.get(url).text
+                except Exception:
+                    # 代理/WAF 瞬断: 重试一次该页, 仍失败则提前收尾 (下轮续跑)
+                    print(f"[tnm] q={key}={value!r} start={start} "
+                          f"网络错误, 8s 后重试该页")
+                    time.sleep(8)
+                    try:
+                        html = self.get(url).text
+                    except Exception:
+                        print(f"[tnm] q={key}={value!r} start={start} "
+                              f"再次失败, 本轮收尾")
+                        break
                 # 搜索结果: colid → 缩略图 成对出现 (每 <li> 一个藏品)
                 pairs = re.findall(
                     r'controller=dtl&colid=([A-Z0-9]+)[^>]*>.*?'
