@@ -38,6 +38,25 @@ $env:PYTHONIOENCODING = 'utf-8'
 # scrub SDK model overrides leaked from VSCode sessions (standalone CLI must pick its own model)
 Remove-Item Env:ANTHROPIC_MODEL -ErrorAction SilentlyContinue
 
+# pre-flight: wait for Clash proxy. Both the LLM API (api.deepseek.com, 直连不通)
+# and overseas museum sites need it; right after wake/login Clash may take minutes
+# to start, otherwise ECONNREFUSED kills the whole run.
+$proxyUp = $false
+for ($i = 0; $i -lt 30; $i++) {
+    if (Test-NetConnection -ComputerName 127.0.0.1 -Port 7890 `
+            -InformationLevel Quiet -WarningAction SilentlyContinue) {
+        $proxyUp = $true
+        break
+    }
+    Start-Sleep -Seconds 20
+}
+if (-not $proxyUp) {
+    $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+    "[$stamp] ERROR: proxy 127.0.0.1:7890 not up after 10min, abort" |
+        Add-Content -Path $log -Encoding UTF8
+    exit 1
+}
+
 $promptFile = Join-Path $repo 'docs\daily_scrape_prompt.txt'
 
 Set-Location $repo

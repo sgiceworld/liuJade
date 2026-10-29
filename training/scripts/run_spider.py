@@ -37,6 +37,8 @@ def main():
                     help='只走发现+详情映射, 不下载图片')
     ap.add_argument('--import-after', action='store_true',
                     help='爬取完成后自动导入标注库 (genuine.jsonl + jade.db)')
+    ap.add_argument('--search-kw', type=str, default=None,
+                    help='关键词搜索模式 (目前仅 knmdb: 全文搜索直达玉器, 绕过全库顺序扫描)')
     args = ap.parse_args()
 
     if args.spider == 'list':
@@ -49,7 +51,10 @@ def main():
         print(f"未知爬虫: {args.spider} (可用: {', '.join(SPIDERS)})")
         sys.exit(1)
 
-    spider = SPIDERS[args.spider]()
+    if args.search_kw and args.spider == 'knmdb':
+        spider = SPIDERS[args.spider](search_kw=args.search_kw)
+    else:
+        spider = SPIDERS[args.spider]()
     spider.run(max_items=args.limit, dry_run=args.dry_run)
 
     if args.import_after and not args.dry_run:

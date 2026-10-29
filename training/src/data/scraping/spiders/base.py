@@ -139,6 +139,22 @@ class BaseJadeSpider(ABC):
         delay = random.uniform(self.config.MIN_DELAY_SEC, self.config.MAX_DELAY_SEC)
         time.sleep(delay)
 
+    def _check_daily_quota(self):
+        """主循环每件前置检查: 任一域名当日配额用尽即抛 RuntimeError,
+        由 run() 的 except RuntimeError 正常收尾。
+
+        (教训 2026-10-29: parse_detail 吞掉配额 RuntimeError 后伪装成网络错误,
+        触发 20 次/180s 熔断循环, 空转 3+ 小时。)
+        """
+        today = datetime.now().strftime('%Y-%m-%d')
+        for key, count in self.request_counts.items():
+            if key.endswith('|' + today) and \
+                    count >= self.config.MAX_REQUESTS_PER_DAY:
+                raise RuntimeError(
+                    f"{self.name}: 域名 {key.split('|')[0]} 已达今日请求上限 "
+                    f"({self.config.MAX_REQUESTS_PER_DAY})"
+                )
+
     def check_robots(self, host: str) -> bool:
         """检查 robots.txt (每域名只查一次)。
 
@@ -391,6 +407,9 @@ class BaseJadeSpider(ABC):
             print(f"[{self.name}] Processing {len(items)} items")
 
             for item in items:
+                # 配额前置检查 (见 _check_daily_quota): 用尽则正常收尾,
+                # 不被 parse_detail 的 except Exception 吞掉误判为网络错误
+                self._check_daily_quota()
                 # 获取详情页数据
                 detail = self.parse_detail(item.get('detail_url', ''))
                 if detail.get('skip_reason'):

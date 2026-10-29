@@ -22,11 +22,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
+import requests
+
 from ...base import BaseJadeSpider
 from ...era_map import map_era_zh, is_approx_era_zh, map_material_zh
 
 KNMDB_BASE = 'https://knmdb.kyohaku.go.jp'
 LIST_TPL = KNMDB_BASE + '/list.html?limit=50&pageNo={page}'
+LIST_SEARCH_TPL = KNMDB_BASE + '/list.html?sf={kw}&limit=50&pageNo={page}'
 DETAIL_TPL = KNMDB_BASE + '/{item_id}.html'
 PAGE_SIZE = 50
 
@@ -38,7 +41,7 @@ def _strip_tags(s: str) -> str:
 class KnmdbSpider(BaseJadeSpider):
     """京都国立博物館館蔵品データベース爬虫 (静态列表+详情, 全库扫描)。"""
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, search_kw: str = None):
         super().__init__(
             name='knmdb',
             museum_name='Kyoto National Museum',
@@ -46,43 +49,41 @@ class KnmdbSpider(BaseJadeSpider):
             base_url=KNMDB_BASE,
             config=config,
         )
+        # 搜索模式: 全文关键词 (玉/翡翠/瑪瑙 等) 直达玉器条目,
+        # 绕过全库顺序扫描 (2026-10-29 起: 前 700 件全为书画陶瓷)
+        self.search_kw = search_kw
 
     # ── 发现 ──
 
     CACHE_DAYS = 7  # 发现结果缓存有效期 (天)
 
-    def discover_items(self) -> List[Dict]:
-        # 缓存命中: 有限全库扫描, 续跑无需每日重扫 150 页
-        cache_file = self.output_dir / '_discovered.json'
-        if cache_file.exists():
-            mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
-            if (datetime.now() - mtime).days < self.CACHE_DAYS:
-                with open(cache_file, encoding='utf-8') as f:
-                    cached = json.load(f)
-                print(f"[knmdb] 发现缓存命中: {len(cached)} 件 "
-                      f"(删除 {cache_file} 可强制重扫)")
-                return cached
+    def _scan_pages(self, url_fmt) -> List[Dict]:
+        """翻页扫描列表页 + 列表级预筛 (国・地域含中国或空)。
+
+        url_fmt: page -> URL 的函数。返回 (items, complete)。
+        """
         items = []
         page = 1
         complete = True
         while True:
-            url = LIST_TPL.format(page=page)
+            url = url_fmt(page)
             try:
                 html = self.get(url).text
-            except Exception:
+            except requests.exceptions.RequestException:
                 # 代理瞬断: 重试一次该页, 仍失败则提前收尾 (下轮续跑)
                 print(f"[knmdb] page={page} 网络错误, 8s 后重试该页")
                 time.sleep(8)
                 try:
                     html = self.get(url).text
-                except Exception:
+                except requests.exceptions.RequestException:
                     print(f"[knmdb] page={page} 再次失败, 本轮收尾 "
                           f"(已发现 {len(items)} 件)")
                     complete = False
                     break
+            # 注意 \Z: 页尾最后一行无后续 item/pager 时也必须匹配 (勿漏末件)
             rows = re.findall(
                 r'<div class="item" id="(\d+)">(.*?)(?=<div class="item" id='
-                r'|<div class="pager)', html, re.S)
+                r'|<div class="pager|\Z)', html, re.S)
             print(f"[knmdb] page={page}: {len(rows)} 件")
             for mid, block in rows:
                 # 列表级预筛: 国・地域含中国 (或空) 才进入详情
@@ -101,14 +102,34 @@ class KnmdbSpider(BaseJadeSpider):
                     'detail_url': DETAIL_TPL.format(item_id=mid),
                     'list_meta': fields,
                 })
-            # 分页器最大页码 (pageNo 链接)
+            # 分页器最大页码 (pageNo 链接); 无分页器 (结果少) 即结束
             last_pages = [int(x) for x in re.findall(r'pageNo=(\d+)', html)]
             if not last_pages or page >= max(last_pages):
                 break
             page += 1
+        return items, complete
+
+    def discover_items(self) -> List[Dict]:
+        # 搜索模式: 关键词直达, 不读写全库缓存
+        if self.search_kw:
+            items, _ = self._scan_pages(
+                lambda p: LIST_SEARCH_TPL.format(kw=self.search_kw, page=p))
+            print(f"[knmdb] 搜索 '{self.search_kw}': 共 {len(items)} 件候选")
+            return items
+        # 全库扫描: 缓存命中则免重扫 150 页
+        cache_file = self.output_dir / '_discovered.json'
+        if cache_file.exists():
+            mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
+            if (datetime.now() - mtime).days < self.CACHE_DAYS:
+                with open(cache_file, encoding='utf-8') as f:
+                    cached = json.load(f)
+                print(f"[knmdb] 发现缓存命中: {len(cached)} 件 "
+                      f"(删除 {cache_file} 可强制重扫)")
+                return cached
+        items, complete = self._scan_pages(
+            lambda p: LIST_TPL.format(page=p))
         # 写发现缓存 (仅全量扫描完成时; 部分扫描不缓存, 续跑重扫)
         if complete:
-            cache_file = self.output_dir / '_discovered.json'
             with open(cache_file, 'w', encoding='utf-8') as f:
                 json.dump(items, f, ensure_ascii=False)
         return items
@@ -120,9 +141,11 @@ class KnmdbSpider(BaseJadeSpider):
         item_id = item_id.group(1) if item_id else ''
         try:
             html = self.get(detail_url).text
-        except Exception:
+        except requests.exceptions.RequestException:
             return {'item_id': item_id, 'title': '', 'era': '',
                     'image_urls': [], 'skip_reason': '网络错误'}
+        # 注意: 配额 RuntimeError 等非网络异常不在此吞掉, 向上传播由
+        # run() 的 except RuntimeError 正常收尾 (2026-10-29 教训)
 
         # 全字段 (dt/dd 结构)
         fields: Dict[str, str] = {}

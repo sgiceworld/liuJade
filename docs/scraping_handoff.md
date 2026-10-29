@@ -4,7 +4,7 @@
 > 人工修改「状态」为 DONE 即可停掉每日任务; 改回 ACTIVE 重新激活。
 
 **状态: ACTIVE**
-最后更新: 2026-10-28
+最后更新: 2026-10-29
 
 ## 总体进度
 
@@ -15,15 +15,20 @@
 | met | ✅ 完成 (仅5件可商用图) | 5 | ✅ |
 | tnm | ✅ 扩轴完成 (2026-10-28) | 2 | ✅ |
 | emuseum | ❌ 已扫描无中国玉器 (2026-10-28) | 0 | - |
-| knmdb (京都国立) | 🔄 全库扫描中 (2026-10-28 启动) | - | - |
+| knmdb (京都国立) | 🔄 发现完成, 搜索模式直达玉器中 (2026-10-29) | 0 | - |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **knmdb 续跑**: 全库 ~7500 件扫描 (150 页), 列表级预筛国・地域=中国,
-   详情过滤 材質・技法 命中玉类; 首日跑满 500 请求配额后优雅收尾,
-   次日 run_spider --spider knmdb 续跑 (checkpoint 断点)
+1. **knmdb 搜索轴直达玉器** (2026-10-29 起): 全库 150 页已扫完, 2194 件
+   中国候选已缓存 (_discovered.json, 7 天有效); 前 700 件详情全为书画/陶瓷
+   (非玉, 顺序磨要 3+ 天)。改用全文搜索直达:
+   `python scripts/run_spider.py --spider knmdb --search-kw 玉`
+   (每日首个; 之后依次 翡翠/瑪瑙/玛瑙/水晶/琥珀/青金石/碧玉/玉髄 —
+   日站材质用日文汉字, 瑪瑙=玛瑙, 玉髄=玉髓)。搜索命中即进详情+下载,
+   与全库扫描共享 checkpoint (processed_items) 自动去重。
+   搜索轴全部跑完后, 兜底无关键词全库续跑磨剩余 ~1494 件 (预计 3-4 天)。
 2. **senoku (泉屋博古館)** 探测: sen-oku.or.jp/kyoto/collection/database/ —
    页面 18KB 无静态链接 (疑 JS 渲染), 需挖接口; 住友收藏中国青铜器/玉器
 3. **ColBase 评估**: colbase.nich.go.jp — 注意: JS SPA (首页仅 3KB 壳),
@@ -56,4 +61,16 @@
   (每日 ≤30 请求, 27 请求/日 实测安全)
 - **GBK 控制台**: run_spider.py 已统一 UTF-8 输出
 - **断点续传**: processed_items 存在 checkpoint.json, 续跑自动跳过
+- **配额 vs 熔断** (2026-10-29 教训): 每日 500 配额用尽时 `_respect_rate_limit`
+  抛 RuntimeError, 曾被 parse_detail 的 `except Exception` 吞掉伪装成网络错误,
+  触发 20 次/180s 熔断循环空转 3.7h。已修: base.py 主循环每件前
+  `_check_daily_quota()` 前置检查 + knmdb.py except 收窄为
+  `requests.exceptions.RequestException` (RuntimeError 正常传播收尾)
+- **日站材质日文汉字**: 瑪瑙=玛瑙, 玉髄=玉髓 (era_map MATERIAL_MAP_ZH 已加);
+  搜索关键词也要中日双形都试
+- **列表页末件**: rows 正则依赖「下一条 item 或 pager」做边界, 已加 `\Z`
+  兜底防末件漏匹配
+- **每日任务代理竞态** (2026-10-29): 开机后 Clash 未就绪时定时任务
+  ECONNREFUSED; daily_scrape.ps1 已加 pre-flight (等 7890 端口, 20s×30,
+  超时干净退出)
 - 爬虫伦理: 单线程、随机延时、500请求/天/域名、尊重 robots.txt (CLAUDE.md)
