@@ -157,6 +157,22 @@ class KnmdbSpider(BaseJadeSpider):
 
     # ── 详情解析 ──
 
+    def _record_skip(self, item_id: str, reason: str, title: str,
+                     material: str, country: str, classification: str):
+        """跳过诊断日志: 逐件留档被拒项的材质/国别 (负结果复核证据,
+        2026-10-30 起; 见 skip_log.jsonl)。"""
+        with open(self.output_dir / 'skip_log.jsonl', 'a', encoding='utf-8') as f:
+            f.write(json.dumps({
+                'item_id': item_id,
+                'reason': reason,
+                'title': title,
+                'material': material,
+                'country': country,
+                'classification': classification,
+                'logged_at': datetime.now().isoformat(),
+            }, ensure_ascii=False) + '\n')
+            f.flush()
+
     def parse_detail(self, detail_url: str) -> Dict:
         item_id = re.search(r'/(\d+)\.html', detail_url or '')
         item_id = item_id.group(1) if item_id else ''
@@ -191,6 +207,8 @@ class KnmdbSpider(BaseJadeSpider):
 
         # 过滤: 国・地域含中国 + 材质命中中文材质表
         if not map_material_zh(material) or ('中国' not in country and country):
+            self._record_skip(item_id, 'not Chinese jade', title, material,
+                              country, fields.get('作品分類', ''))
             return {'item_id': item_id, 'title': title, 'era': '',
                     'image_urls': [], 'skip_reason': 'not Chinese jade'}
 
@@ -198,6 +216,8 @@ class KnmdbSpider(BaseJadeSpider):
         img_urls = sorted(set(re.findall(
             r'["\'](/art_images/[^"\']+_difile\d+-L\.jpg)["\']', html)))
         if not img_urls:
+            self._record_skip(item_id, 'no image', title, material,
+                              country, fields.get('作品分類', ''))
             return {'item_id': item_id, 'title': title, 'era': '',
                     'image_urls': [], 'skip_reason': 'no image'}
         groups = [[KNMDB_BASE + u] for u in img_urls]
