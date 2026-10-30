@@ -58,9 +58,14 @@ def main():
     spider.run(max_items=args.limit, dry_run=args.dry_run)
 
     if args.import_after and not args.dry_run:
-        print(f"\n── 导入标注库: {args.spider} ──")
-        from data.scraping.import_museum_data import import_museum
-        import_museum(args.spider, db_path=str(REPO_ROOT / 'jade.db'))
+        # 0 下载的轴 (如关键词搜索全为非玉) 无 metadata.jsonl,
+        # 直接跳过导入, 避免 import_museum 的 SystemExit 使每日任务以非零码收尾
+        if not (spider.output_dir / 'metadata.jsonl').exists():
+            print(f"[{args.spider}] 本轮无新下载 (metadata.jsonl 不存在), 跳过导入")
+        else:
+            print(f"\n── 导入标注库: {args.spider} ──")
+            from data.scraping.import_museum_data import import_museum
+            import_museum(args.spider, db_path=str(REPO_ROOT / 'jade.db'))
 
 
 if __name__ == '__main__':

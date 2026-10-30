@@ -8,16 +8,21 @@
   → 列表级预筛 国・地域含"中国" (或为空), 省大量详情请求
 - 详情: /{id}.html 静态页, 含 材質・技法/時代/世紀/西暦/法量/指定区分/
   作者名/作品名・文化財の名称/寄贈者 等完整字段
-- 图片: 详情页内 /art_images/{p}/{img}_difile2-L.jpg 大图 (实测 700KB+)
-- 过滤: 国・地域含中国 + 材質・技法 命中中文材质表
+- 图片: 详情页内 /art_images/{p}/{img}_difile{n}-L.jpg 大图
+  (槽位号 n 不定, 1/2/3 都有, 取 -L 变体; 实测 700KB+)
+- 过滤: 国・地域含中国 + 分类非绘画/书法等大类 + 材質・技法 命中中文材质表
 - 发现缓存: _discovered.json 缓存全库扫描结果 (7 天内不重扫,
   每日省 150 页请求; 删除该文件可强制重扫)
 - 网络: 需走代理; 代理对本站间歇性抖动, 详情页失败自动重试一轮
+- 教训 (2026-10-30): 详情页主体是 <th>/<td> 表结构, 列表页才是 dt/dd;
+  早期 parse_detail 只解析 dt/dd → 所有详情空字段 → 700+ 件全被误判
+  not Chinese jade (0 下载)。已改为 th/td 优先 + dt/dd 兜底
 """
 
 import json
 import re
 import time
+import urllib.parse
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
@@ -36,6 +41,18 @@ PAGE_SIZE = 50
 
 def _strip_tags(s: str) -> str:
     return re.sub(r'<[^>]+>', '', s or '').replace('&nbsp;', ' ').strip()
+
+
+# 大类排除: 这些分类不可能含中国玉器 (2026-10-30 实测: sf=玉 命中 197 件,
+# 多为画题/画家名含"玉", 如 玉洞桃花図/浦上玉堂; 分类级预筛砍掉 ~81% 噪声)
+NON_JADE_CAT_RE = re.compile(
+    r'^(絵画\(A\)|書跡\(B\)|建築\(D\)|陶磁\(G\)|漆工\(H\)|染織\(I\)|歴史\(M\))')
+
+
+def _category_ok(fields: Dict[str, str]) -> bool:
+    """列表级分类预筛: 排除不可能含玉的大类 (空分类保留, 详情级兜底)。"""
+    cat = fields.get('分類', '')
+    return not cat or not NON_JADE_CAT_RE.match(cat)
 
 
 class KnmdbSpider(BaseJadeSpider):
@@ -97,6 +114,8 @@ class KnmdbSpider(BaseJadeSpider):
                 country = fields.get('国・地域', '')
                 if country and '中国' not in country:
                     continue
+                if not _category_ok(fields):
+                    continue
                 items.append({
                     'item_id': mid,
                     'detail_url': DETAIL_TPL.format(item_id=mid),
@@ -123,6 +142,8 @@ class KnmdbSpider(BaseJadeSpider):
             if (datetime.now() - mtime).days < self.CACHE_DAYS:
                 with open(cache_file, encoding='utf-8') as f:
                     cached = json.load(f)
+                cached = [it for it in cached
+                          if _category_ok(it.get('list_meta', {}))]
                 print(f"[knmdb] 发现缓存命中: {len(cached)} 件 "
                       f"(删除 {cache_file} 可强制重扫)")
                 return cached
@@ -147,12 +168,19 @@ class KnmdbSpider(BaseJadeSpider):
         # 注意: 配额 RuntimeError 等非网络异常不在此吞掉, 向上传播由
         # run() 的 except RuntimeError 正常收尾 (2026-10-29 教训)
 
-        # 全字段 (dt/dd 结构)
+        # 全字段: 详情页主体为 <th>/<td> 表结构 (列表页才是 dt/dd;
+        # 只解析 dt/dd 会得空字段 → 全被误判 not Chinese jade)
         fields: Dict[str, str] = {}
-        for k, v in re.findall(r'<dt[^>]*>(.*?)</dt>\s*<dd[^>]*>(.*?)</dd>',
+        for k, v in re.findall(r'<th[^>]*>(.*?)</th>\s*<td[^>]*>(.*?)</td>',
                                html, re.S):
             key = _strip_tags(k)
             if key:
+                fields[key] = _strip_tags(v)
+        # 台帳番号 等在页面顶部的 dt/dd 小表里, 兜底补收
+        for k, v in re.findall(r'<dt[^>]*>(.*?)</dt>\s*<dd[^>]*>(.*?)</dd>',
+                               html, re.S):
+            key = _strip_tags(k)
+            if key and key not in fields:
                 fields[key] = _strip_tags(v)
         title = fields.get('作品名・文化財の名称', '')
         country = fields.get('国・地域', '')
@@ -166,9 +194,9 @@ class KnmdbSpider(BaseJadeSpider):
             return {'item_id': item_id, 'title': title, 'era': '',
                     'image_urls': [], 'skip_reason': 'not Chinese jade'}
 
-        # 大图 (同号 M/L/S 变体, 取 L; 连作含多图)
+        # 大图 (difile 槽位号不定 1/2/3..., 取 -L 变体; 连作含多图)
         img_urls = sorted(set(re.findall(
-            r'["\'](/art_images/[^"\']+_difile2-L\.jpg)["\']', html)))
+            r'["\'](/art_images/[^"\']+_difile\d+-L\.jpg)["\']', html)))
         if not img_urls:
             return {'item_id': item_id, 'title': title, 'era': '',
                     'image_urls': [], 'skip_reason': 'no image'}
