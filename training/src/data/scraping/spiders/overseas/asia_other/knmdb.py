@@ -45,14 +45,22 @@ def _strip_tags(s: str) -> str:
 
 # 大类排除: 这些分类不可能含中国玉器 (2026-10-30 实测: sf=玉 命中 197 件,
 # 多为画题/画家名含"玉", 如 玉洞桃花図/浦上玉堂; 分类级预筛砍掉 ~81% 噪声)
+# 例外 (2026-10-31 负结果复核): 「その他」边缘子类 (陶磁(G)その他 14 件 /
+# 絵画(A)中国絵画その他 9 件) 可能混有玉器, 一并逐件复核留档;
+# 書跡(B)中国書跡その他 103 件过大且为书法, 继续排除
 NON_JADE_CAT_RE = re.compile(
     r'^(絵画\(A\)|書跡\(B\)|建築\(D\)|陶磁\(G\)|漆工\(H\)|染織\(I\)|歴史\(M\))')
 
 
 def _category_ok(fields: Dict[str, str]) -> bool:
-    """列表级分类预筛: 排除不可能含玉的大类 (空分类保留, 详情级兜底)。"""
+    """列表级分类预筛: 排除不可能含玉的大类 (空分类保留, 详情级兜底)。
+
+    「その他」边缘子类例外放行 (除 書跡 その他): 逐件复核留档 (skip_log.jsonl)。
+    """
     cat = fields.get('分類', '')
-    return not cat or not NON_JADE_CAT_RE.match(cat)
+    if not cat or not NON_JADE_CAT_RE.match(cat):
+        return True
+    return cat.endswith('その他') and not cat.startswith('書跡')
 
 
 class KnmdbSpider(BaseJadeSpider):
