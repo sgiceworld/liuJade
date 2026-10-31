@@ -6,7 +6,7 @@
 > daily_scrape.ps1 / daily_scrape_prompt.txt 留存仓库仅作参考, 不再被调度。
 
 **状态: ACTIVE**
-最后更新: 2026-10-30
+最后更新: 2026-10-31
 
 ## 总体进度
 
@@ -17,34 +17,24 @@
 | met | ✅ 完成 (仅5件可商用图) | 5 | ✅ |
 | tnm | ✅ 扩轴完成 (2026-10-28) | 2 | ✅ |
 | emuseum | ❌ 已扫描无中国玉器 (2026-10-28) | 0 | - |
-| knmdb (京都国立) | ❌ 已扫描无中国玉器 (分类预筛后 385 候选全非玉, 2026-10-30) | 0 | - |
+| knmdb (京都国立) | ✅ 负结果坐实 (2026-10-31 逐件复核 408 件全非玉, 证据见 skip_log.jsonl) | 0 | - |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **knmdb 负结果复核 (逐件证据)** (2026-10-31 执行): 10-30 的「0 玉器」结论
-   是推断 (skip 未留档实际材质值), 用户要求逐件证据。步骤:
-   a) 离线重算分类预筛候选 (排除絵画/書跡/建築/陶磁/漆工/染織/歴史 后剩
-   385 件 + 边缘「その他」子类 ~23 件, 如 陶磁(G) その他/絵画(A) 中国絵画
-   その他, 排除 書跡(B) 中国書跡 その他 103 件过大且不可能含玉),
-   b) 从 checkpoint.processed_items 移除这批 ID (保留其余),
-   c) `python scripts/run_spider.py --spider knmdb` 重磨 →
-   产出 skip_log.jsonl (每件 item_id/标题/材质/国别/分类),
-   d) 汇总材质分布, 若出现玉系材质 → 修材质表补下载; 若无 → 负结果坐实,
-   更新交接文档并汇报。预计 ~410 请求, 用完当日大部分配额, senoku 顺延。
-2. **senoku (泉屋博古館)** 探测: sen-oku.or.jp/kyoto/collection/database/ —
+1. **senoku (泉屋博古館)** 探测: sen-oku.or.jp/kyoto/collection/database/ —
    页面 18KB 无静态链接 (疑 JS 渲染), 需挖接口; 住友收藏中国青铜器/玉器
-3. **ColBase 评估**: colbase.nich.go.jp — 注意: JS SPA (首页仅 3KB 壳),
+2. **ColBase 评估**: colbase.nich.go.jp — 注意: JS SPA (首页仅 3KB 壳),
    需先挖 JS bundle 找 API; 覆盖全日本馆藏 (未指定级别也收), 值得投入
-4. **untested 海外站探测** (sites.json): korea, taipei_npm, brooklyn, mfa,
+3. **untested 海外站探测** (sites.json): korea, taipei_npm, brooklyn, mfa,
    guimet, asian_art_sf — 探测 → 可行则写蜘蛛
-5. **capital_museum** (static_verified) → 静态爬虫
-6. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
+4. **capital_museum** (static_verified) → 静态爬虫
+5. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
    shaanxi, nanjing, shanxi, liaoning, sichuan, guangdong, gansu, guangxi,
    fujian, jiangxi, chongqing, yin_ruins, sanxingdui
-7. **gugong** Playwright 骨架落地 (`spiders/domestic/central/gugong.py`)
-8. key_required 站点 (freer_sackler, rijksmuseum, harvard) 无 key, 暂缓
+6. **gugong** Playwright 骨架落地 (`spiders/domestic/central/gugong.py`)
+7. key_required 站点 (freer_sackler, rijksmuseum, harvard) 无 key, 暂缓
 
 ## 完成定义
 
@@ -88,6 +78,16 @@
   已修 (th/td 优先 + dt/dd 兜底)。教训: 新站点落地时先抓一个真实详情页
   验证解析字段非空, 再批量跑; 大比例 skip 单一原因时先怀疑解析器。
   另: 列表级可加分类预筛 (排除不可能含玉的大类), 省 ~81% 详情请求。
+- **负结果复核手法** (2026-10-31): 从 checkpoint.processed_items 移除目标 ID
+  (先备份 .bak) → 重跑同 spider → skip_log.jsonl 逐件留档。skip_log 写入带
+  f.flush() 可实时查进度; 而 stdout 重定向到文件时块缓冲, 运行中看日志文件
+  不可靠 (进程退出后才落盘)。复核收尾: 全文 grep skip_log 的材质+标题,
+  玉系关键词 (玉/翡翠/瑪瑙/玉髄/青金/琥珀/水晶/璧/琮/圭/璜/玦, 中日双形) 零命中
+  才算坐实。
+- **青铜嵌石非玉器** (2026-10-31): knmdb 408 件复核中发现 2 件青铜器带嵌饰 —
+  透彫虺龍文鏡 (13904, 「緑色の石」嵌) 与 銅戈 (20831, 「トルコ石」绿松石象嵌,
+  西周)。主材质为青铜, 属青铜器非玉器, 不加材质表 (加 トルコ石 会误标青铜器
+  为绿松石, 污染标注库)。
 - **Bash 后台命令 10 分钟时限** (2026-10-30 教训): run_in_background 默认
   600s 超时被杀, 长任务 (全库续跑 ~40 分钟) 必须显式 timeout (上限 7200000);
   被硬杀会丢内存中的 processed 进度 (checkpoint 不会保存)。另外 WindowsApps
