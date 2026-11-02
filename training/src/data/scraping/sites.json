@@ -761,11 +761,11 @@
       "priority": "P0",
       "type": "static",
       "base_url": "https://www.sen-oku.or.jp",
-      "entry_url": "https://www.sen-oku.or.jp/collection/",
-      "status": "untested",
-      "status_note": "住友コレクション, 中国青铜器/玉器收藏, 有在线藏品检索, 待探测",
+      "entry_url": "https://sen-oku.or.jp/kyoto/collection/database/",
+      "status": "scanned_no_jade",
+      "status_note": "2026-11-02 负结果坐实: wp-sitemap.xml 61 页全枚举, 无在线藏品检索数据库(database 页仅外链木島櫻谷写生帖DB, 与玉器无关); 京都12+东京12高亮件+青铜器馆4展厅19件(coming soon, 条目在HTML注释内)共43件逐件留档scraped_data/senoku/skip_log.jsonl, 材质全为青铜/书画/漆/木/陶, 全站玉系关键词0命中。住友收藏约3500件仅高亮上线, 玉器未数字化公开",
       "spider": null,
-      "verified_at": null
+      "verified_at": "2026-11-02"
     }
   ]
 }

@@ -6,7 +6,7 @@
 > daily_scrape.ps1 / daily_scrape_prompt.txt 留存仓库仅作参考, 不再被调度。
 
 **状态: ACTIVE**
-最后更新: 2026-10-31
+最后更新: 2026-11-02
 
 ## 总体进度
 
@@ -18,23 +18,22 @@
 | tnm | ✅ 扩轴完成 (2026-10-28) | 2 | ✅ |
 | emuseum | ❌ 已扫描无中国玉器 (2026-10-28) | 0 | - |
 | knmdb (京都国立) | ✅ 负结果坐实 (2026-10-31 逐件复核 408 件全非玉, 证据见 skip_log.jsonl) | 0 | - |
+| senoku (泉屋博古館) | ✅ 负结果坐实 (2026-11-02 43件逐件留档全非玉, 证据见 scraped_data/senoku/skip_log.jsonl) | 0 | - |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **senoku (泉屋博古館)** 探测: sen-oku.or.jp/kyoto/collection/database/ —
-   页面 18KB 无静态链接 (疑 JS 渲染), 需挖接口; 住友收藏中国青铜器/玉器
-2. **ColBase 评估**: colbase.nich.go.jp — 注意: JS SPA (首页仅 3KB 壳),
+1. **ColBase 评估**: colbase.nich.go.jp — 注意: JS SPA (首页仅 3KB 壳),
    需先挖 JS bundle 找 API; 覆盖全日本馆藏 (未指定级别也收), 值得投入
-3. **untested 海外站探测** (sites.json): korea, taipei_npm, brooklyn, mfa,
+2. **untested 海外站探测** (sites.json): korea, taipei_npm, brooklyn, mfa,
    guimet, asian_art_sf — 探测 → 可行则写蜘蛛
-4. **capital_museum** (static_verified) → 静态爬虫
-5. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
+3. **capital_museum** (static_verified) → 静态爬虫
+4. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
    shaanxi, nanjing, shanxi, liaoning, sichuan, guangdong, gansu, guangxi,
    fujian, jiangxi, chongqing, yin_ruins, sanxingdui
-6. **gugong** Playwright 骨架落地 (`spiders/domestic/central/gugong.py`)
-7. key_required 站点 (freer_sackler, rijksmuseum, harvard) 无 key, 暂缓
+5. **gugong** Playwright 骨架落地 (`spiders/domestic/central/gugong.py`)
+6. key_required 站点 (freer_sackler, rijksmuseum, harvard) 无 key, 暂缓
 
 ## 完成定义
 
@@ -88,6 +87,10 @@
   透彫虺龍文鏡 (13904, 「緑色の石」嵌) 与 銅戈 (20831, 「トルコ石」绿松石象嵌,
   西周)。主材质为青铜, 属青铜器非玉器, 不加材质表 (加 トルコ石 会误标青铜器
   为绿松石, 污染标注库)。
+- **WordPress 站枚举手法** (2026-11-02, senoku): WP 站直接拉 /wp-sitemap.xml
+  拿全站页面清单 (senoku 61 页), 比翻导航快且不漏; 另注意「coming soon」页的
+  真实内容可能藏在 HTML 注释里 (senoku 青铜器馆 4 展厅 19 件条目即如此),
+  负结果复核也要扫注释块, 否则会漏件。
 - **Bash 后台命令 10 分钟时限** (2026-10-30 教训): run_in_background 默认
   600s 超时被杀, 长任务 (全库续跑 ~40 分钟) 必须显式 timeout (上限 7200000);
   被硬杀会丢内存中的 processed 进度 (checkpoint 不会保存)。另外 WindowsApps
