@@ -766,6 +766,21 @@
       "status_note": "2026-11-02 负结果坐实: wp-sitemap.xml 61 页全枚举, 无在线藏品检索数据库(database 页仅外链木島櫻谷写生帖DB, 与玉器无关); 京都12+东京12高亮件+青铜器馆4展厅19件(coming soon, 条目在HTML注释内)共43件逐件留档scraped_data/senoku/skip_log.jsonl, 材质全为青铜/书画/漆/木/陶, 全站玉系关键词0命中。住友收藏约3500件仅高亮上线, 玉器未数字化公开",
       "spider": null,
       "verified_at": "2026-11-02"
+    },
+    {
+      "id": "colbase",
+      "name": "ColBase (National Institutes for Cultural Heritage)",
+      "name_cn": "文化遺産オンライン ColBase",
+      "region": "overseas",
+      "subregion": "asia_other",
+      "priority": "P0",
+      "type": "api",
+      "base_url": "https://colbase.nich.go.jp/colbaseapi/v2",
+      "entry_url": "https://colbase.nich.go.jp/colbaseapi/v2/collection_items?locale=ja&page=1&limit=20&hinshitu_keijo=%E7%8E%89&with_image_file=1",
+      "status": "verified",
+      "status_note": "2026-11-02 评估通过: Nuxt SPA 挖出 API v2 (x-api-key: aaa 任意值, robots 无限制声明)。collection_items 参数: locale/page/limit(必需,上限100)/free_word/with_image_file/only_parent/bunkazai/bunrui/title/title_kana/insuu/sakusha/seisakuchi/shutudochi/jidai_seiki/hinshitu_keijo(材质子串)/meibun/kizousha/category_ids/organization_item_key/organization_id。hinshitu_keijo=玉 469件(tnm 419+narahaku 45+kyuhaku 5), 中国子集≈東洋陶磁238+東洋考古34≈270; 另有翡翠37/瑪瑙32/玉髄3/水晶62/琥珀14/トルコ石3/ラピスラズリ1。大图: thumbnail_url 去掉 /thumbnail 得原图 (实测 3.5MB+)。待写 ColBaseSpider",
+      "spider": null,
+      "verified_at": "2026-11-02"
     }
   ]
 }

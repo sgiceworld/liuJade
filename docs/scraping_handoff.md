@@ -19,13 +19,24 @@
 | emuseum | ❌ 已扫描无中国玉器 (2026-10-28) | 0 | - |
 | knmdb (京都国立) | ✅ 负结果坐实 (2026-10-31 逐件复核 408 件全非玉, 证据见 skip_log.jsonl) | 0 | - |
 | senoku (泉屋博古館) | ✅ 负结果坐实 (2026-11-02 43件逐件留档全非玉, 证据见 scraped_data/senoku/skip_log.jsonl) | 0 | - |
+| colbase | ✅ 评估通过 (2026-11-02 API v2 挖出, 玉材质 469 件中国子集≈270, 见 sites.json) | - | ⬜ |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **ColBase 评估**: colbase.nich.go.jp — 注意: JS SPA (首页仅 3KB 壳),
-   需先挖 JS bundle 找 API; 覆盖全日本馆藏 (未指定级别也收), 值得投入
+1. **写 ColBaseSpider** (`spiders/overseas/asia_other/colbase.py`): API 已挖出
+   (sites.json colbase 条目有全部参数)。设计要点:
+   - 查询轴: hinshitu_keijo 子串匹配, 关键词轴跑 [玉, 翡翠, 瑪瑙, 玉髄, 水晶,
+     琥珀, トルコ石, ラピスラズリ] × with_image_file=1 (玉469/翡翠37/瑪瑙32/玉髄3/
+     水晶62/琥珀14/トルコ石3/ラピス1 ≈ 620 去重)
+   - 中国过滤 (详情级联合, 同 knmdb): bunrui∈{東洋陶磁,東洋考古,東洋書跡,東洋民族}
+     或 出土地=中国 或 時代∈{殷,周,漢,戦国,春秋,新石器…}; 排除日本件 (考古=縄文
+     勾玉, 彫刻=玉眼仏像, 法隆寺宝物)
+   - 详情 = collection_items?locale=ja&limit=1&organization_item_key={key}
+   - 大图 = thumbnail_url.replace('/thumbnail/','/') (实测 3.5MB)
+   - 每请求 delay 3-8s, 500/天; limit≤100 可用
+   - 试跑后 metadata.jsonl → import_museum_data.py 导入
 2. **untested 海外站探测** (sites.json): korea, taipei_npm, brooklyn, mfa,
    guimet, asian_art_sf — 探测 → 可行则写蜘蛛
 3. **capital_museum** (static_verified) → 静态爬虫
@@ -91,6 +102,12 @@
   拿全站页面清单 (senoku 61 页), 比翻导航快且不漏; 另注意「coming soon」页的
   真实内容可能藏在 HTML 注释里 (senoku 青铜器馆 4 展厅 19 件条目即如此),
   负结果复核也要扫注释块, 否则会漏件。
+- **Nuxt SPA 挖接口手法** (2026-11-02, colbase): 壳页列出的 bundle 里 grep
+  `baseURL` 拿 API 基址 + `axios.get` 调参代码; 路由到 API 参数的映射函数
+  (getXxxQueryOrThrowFromRoute) 直接给出全部参数名与类型 (required 参数缺失
+  返回 400 Bad Request 而非 401/404, 易误判)。API 返回结果含 resultset.count/
+  page/limit, limit 上限 100。colbase 偶发 SSL 断连 (约 40 请求后), 加
+  try/retry + 8s 退避即可, 非硬限流。
 - **Bash 后台命令 10 分钟时限** (2026-10-30 教训): run_in_background 默认
   600s 超时被杀, 长任务 (全库续跑 ~40 分钟) 必须显式 timeout (上限 7200000);
   被硬杀会丢内存中的 processed 进度 (checkpoint 不会保存)。另外 WindowsApps
