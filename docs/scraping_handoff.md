@@ -19,24 +19,17 @@
 | emuseum | ❌ 已扫描无中国玉器 (2026-10-28) | 0 | - |
 | knmdb (京都国立) | ✅ 负结果坐实 (2026-10-31 逐件复核 408 件全非玉, 证据见 skip_log.jsonl) | 0 | - |
 | senoku (泉屋博古館) | ✅ 负结果坐实 (2026-11-02 43件逐件留档全非玉, 证据见 scraped_data/senoku/skip_log.jsonl) | 0 | - |
-| colbase | ✅ 评估通过 (2026-11-02 API v2 挖出, 玉材质 469 件中国子集≈270, 见 sites.json) | - | ⬜ |
+| colbase | 🔶 爬虫已落地+全量首跑中 (2026-11-02, 606件候选, 见 skip_log 收尾复核) | - | ⏳ |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **写 ColBaseSpider** (`spiders/overseas/asia_other/colbase.py`): API 已挖出
-   (sites.json colbase 条目有全部参数)。设计要点:
-   - 查询轴: hinshitu_keijo 子串匹配, 关键词轴跑 [玉, 翡翠, 瑪瑙, 玉髄, 水晶,
-     琥珀, トルコ石, ラピスラズリ] × with_image_file=1 (玉469/翡翠37/瑪瑙32/玉髄3/
-     水晶62/琥珀14/トルコ石3/ラピス1 ≈ 620 去重)
-   - 中国过滤 (详情级联合, 同 knmdb): bunrui∈{東洋陶磁,東洋考古,東洋書跡,東洋民族}
-     或 出土地=中国 或 時代∈{殷,周,漢,戦国,春秋,新石器…}; 排除日本件 (考古=縄文
-     勾玉, 彫刻=玉眼仏像, 法隆寺宝物)
-   - 详情 = collection_items?locale=ja&limit=1&organization_item_key={key}
-   - 大图 = thumbnail_url.replace('/thumbnail/','/') (实测 3.5MB)
-   - 每请求 delay 3-8s, 500/天; limit≤100 可用
-   - 试跑后 metadata.jsonl → import_museum_data.py 导入
+1. **colbase 首跑收尾复核** (进行中): 606 件候选 8 材质轴已跑, 中国过滤
+   (bunrui 東洋*/出土地中国/时代中国词, 排除日韩词+玉眼佛像) 后下载大图;
+   跑完检查 skip_log.jsonl 玉系关键词零误杀 (重点: 東洋陶磁 238 件里
+   高麗/新羅 朝鲜件、彫刻 72 件玉眼佛像全排除)、metadata.jsonl 导入结果、
+   jade.db 计数。若「東洋民族」1 件为玉器需人工看
 2. **untested 海外站探测** (sites.json): korea, taipei_npm, brooklyn, mfa,
    guimet, asian_art_sf — 探测 → 可行则写蜘蛛
 3. **capital_museum** (static_verified) → 静态爬虫
