@@ -778,7 +778,7 @@
       "base_url": "https://colbase.nich.go.jp/colbaseapi/v2",
       "entry_url": "https://colbase.nich.go.jp/colbaseapi/v2/collection_items?locale=ja&page=1&limit=20&hinshitu_keijo=%E7%8E%89&with_image_file=1",
       "status": "verified",
-      "status_note": "2026-11-02 评估通过: Nuxt SPA 挖出 API v2 (x-api-key: aaa 任意值, robots 无限制声明)。collection_items 参数: locale/page/limit(必需,上限100)/free_word/with_image_file/only_parent/bunkazai/bunrui/title/title_kana/insuu/sakusha/seisakuchi/shutudochi/jidai_seiki/hinshitu_keijo(材质子串)/meibun/kizousha/category_ids/organization_item_key/organization_id。hinshitu_keijo=玉 469件(tnm 419+narahaku 45+kyuhaku 5), 中国子集≈東洋陶磁238+東洋考古34≈270; 另有翡翠37/瑪瑙32/玉髄3/水晶62/琥珀14/トルコ石3/ラピスラズリ1。大图: thumbnail_url 去掉 /thumbnail 得原图 (实测 3.5MB+)。ColBaseSpider 已落地 (2026-11-02), 8材质轴606件候选, 中国过滤后批量下载中",
+      "status_note": "2026-11-02 完成首跑: 8材质轴 606 件候选去重, 中国过滤后下载 309 张高清大图导入标注库 (清233/民国22/金元11/秦汉8/三国两晋7/文化期6/明5/战国2/商1/唐1/待OCR13), 297 件拒件逐件留档 scraped_data/colbase/skip_log.jsonl 零误杀; 排除含日韩时代词/非中国文明(莫卧儿/苏美尔/中亚BMAC)/玉眼佛像/青铜嵌石。API 参数/图片变体见 handoff。media 端点间歇 404 需重试",
       "spider": "spiders.overseas.asia_other.colbase:ColbaseSpider",
       "verified_at": "2026-11-02"
     }

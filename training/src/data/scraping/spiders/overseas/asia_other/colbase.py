@@ -10,16 +10,22 @@
 - 中国过滤 (列表级, 逐件留档 skip_log.jsonl):
   bunrui 東洋* (東洋陶磁/東洋考古/東洋書跡) 或 出土地含中国 或
   時代/标题命中中国时代词; 排除日/韩时代词 (縄文/弥生/古墳/奈良/平安/
-  鎌倉/室町/江戸/明治 + 新羅/高麗/李朝/朝鮮) 与 玉眼佛像 (材質含 玉眼)
-- 图片: thumbnail_url 去掉 /thumbnail/ 得原图 (实测 3.5MB, 328px → 高清)
+  鎌倉/室町/江戸/明治 + 新羅/高麗/李朝/朝鮮)、非中国文明词 (ムガル/
+  シュメル/メソポタミア 等, TNM「東洋」含中东/南亚)、玉眼佛像
+  (材質含 玉眼)、青铜嵌石 (材質含 青銅, 主材质非玉)
+- 图片: thumbnail_url 去掉 /thumbnail/ 得原图 (实测 3.5MB, 328px → 高清);
+  media 端点间歇 404 抖动 (同 URL 时 200 时 404), 下载带 4 次重试
 - 限速: 基类 3-8s 延时 + 500 请求/天/域名
 """
 
 import json
 import re
+import time
 import urllib.parse
 from datetime import datetime
 from typing import Dict, List
+
+import requests
 
 from ...base import BaseJadeSpider
 from ...era_map import map_era_zh, is_approx_era_zh, map_material_zh
@@ -45,15 +51,27 @@ JP_ERA_RE = re.compile(
     r'縄文|绳文|弥生|彌生|古墳|飛鳥|奈良|平安|鎌倉|室町|桃山|江戸|江户|'
     r'明治|大正|昭和|琉球|沖縄|アイヌ')
 # 朝鲜半岛时代标记 (排除)
+# 注意: 楽浪 (Lelang) 是汉四郡, 属中国汉文化, 不在此列 (2026-11-02 复核修正)
 KR_ERA_RE = re.compile(
-    r'新羅|高麗|高句麗|百済|百濟|李朝|朝鮮|伽耶|楽浪')
+    r'新羅|高麗|高句麗|百済|百濟|李朝|朝鮮|伽耶')
+
+# 非中国文明标记 (排除): TNM「東洋」分类含中东/南亚/东南亚
+# (实测: ムガル朝玉器 TG-1701、シュメル装身具 TJ-5916 混入;
+#  前期青銅器時代 = 中亚 BMAC/巴克特里亚, ラピスラズリ製玉 TJ-4907)
+NCN_ERA_RE = re.compile(
+    r'ムガル|シュメル|メソポタミア|アッシリア|バビロ|エジプト|ギリシャ|'
+    r'ギリシア|ローマ|ペルシャ|ペルシア|イラン|アナトリア|バクトリ|インダス|'
+    r'ガンダーラ|インド|クシャン|パルティア|ササン|ウラルトゥ|スキタイ|'
+    r'ベトナム|ヴェトナム|シャム|ビルマ|ジャワ|カンボジア|アンコール|'
+    r'前期青銅器時代')
 
 
 def _is_chinese(item: Dict) -> bool:
     """列表级中国过滤: bunrui/出土地/时代/标题 联合判定。
 
-    排除: 日韩时代词、玉眼佛像 (木雕 玉眼 属日本雕塑)、
-    東洋民族 (民族资料)。
+    排除: 日韩时代词、非中国文明词 (中东/南亚/东南亚)、玉眼佛像
+    (木雕 玉眼 属日本雕塑)、東洋民族 (民族资料)、青铜嵌石
+    (主材质为青铜, 同 knmdb 教训)。
     """
     bunrui = item.get('bunrui') or ''
     shutudochi = item.get('shutudochi') or ''
@@ -66,9 +84,13 @@ def _is_chinese(item: Dict) -> bool:
         return False
     if bunrui == '東洋民族':
         return False
+    # 青铜嵌石 (トルコ石象嵌 等): 主材质青铜 → 非玉器
+    if '青銅' in material:
+        return False
 
     era_text = ' '.join(x for x in (jidai, title) if x)
-    if JP_ERA_RE.search(era_text) or KR_ERA_RE.search(era_text):
+    if (JP_ERA_RE.search(era_text) or KR_ERA_RE.search(era_text)
+            or NCN_ERA_RE.search(era_text)):
         return False
     if shutudochi and '中国' in shutudochi:
         return True
@@ -131,6 +153,34 @@ class ColbaseSpider(BaseJadeSpider):
         return items
 
     # ── 详情 (列表行即完整记录, 零额外请求) ──
+
+    # ── 图片下载重试: media 端点间歇性抖动 (同 URL 时而 200 时而 404, 时而
+    #    ReadTimeout; 2026-11-02 实测 TG-1745 三连测 200/200/404, run2 曾因
+    #    ReadTimeout 中途崩溃收尾); 基类只对连接错误重试 1 次不够 ──
+
+    IMAGE_RETRY_TIMES = 5
+    IMAGE_RETRY_DELAY = 8
+
+    def download_image(self, url, item_id=None, extra=None):
+        for attempt in range(self.IMAGE_RETRY_TIMES):
+            try:
+                return super().download_image(url, item_id=item_id, extra=extra)
+            except requests.HTTPError as e:
+                if (attempt < self.IMAGE_RETRY_TIMES - 1 and
+                        e.response is not None and e.response.status_code == 404):
+                    print(f"    ⚠ 图片 404 重试 {attempt + 1}/{self.IMAGE_RETRY_TIMES - 1}: "
+                          f"{url[:90]}")
+                    time.sleep(self.IMAGE_RETRY_DELAY)
+                    continue
+                raise
+            except (requests.ConnectionError, requests.ReadTimeout) as e:
+                if attempt < self.IMAGE_RETRY_TIMES - 1:
+                    print(f"    ⚠ 图片 {type(e).__name__} 重试 "
+                          f"{attempt + 1}/{self.IMAGE_RETRY_TIMES - 1}: {url[:90]}")
+                    time.sleep(self.IMAGE_RETRY_DELAY * 2)
+                    continue
+                raise
+        return None
 
     def _record_skip(self, item_id: str, reason: str, title: str,
                      material: str, bunrui: str, jidai: str, shutudochi: str):

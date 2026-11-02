@@ -19,25 +19,20 @@
 | emuseum | ❌ 已扫描无中国玉器 (2026-10-28) | 0 | - |
 | knmdb (京都国立) | ✅ 负结果坐实 (2026-10-31 逐件复核 408 件全非玉, 证据见 skip_log.jsonl) | 0 | - |
 | senoku (泉屋博古館) | ✅ 负结果坐实 (2026-11-02 43件逐件留档全非玉, 证据见 scraped_data/senoku/skip_log.jsonl) | 0 | - |
-| colbase | 🔶 爬虫已落地+全量首跑中 (2026-11-02, 606件候选, 见 skip_log 收尾复核) | - | ⏳ |
+| colbase | ✅ 完成 (2026-11-02, 606件候选 → 309下载导入 / 297拒件留档, 见 skip_log) | 309 | ✅ |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **colbase 首跑收尾复核** (进行中): 606 件候选 8 材质轴已跑, 中国过滤
-   (bunrui 東洋*/出土地中国/时代中国词, 排除日韩词+玉眼佛像) 后下载大图;
-   跑完检查 skip_log.jsonl 玉系关键词零误杀 (重点: 東洋陶磁 238 件里
-   高麗/新羅 朝鲜件、彫刻 72 件玉眼佛像全排除)、metadata.jsonl 导入结果、
-   jade.db 计数。若「東洋民族」1 件为玉器需人工看
-2. **untested 海外站探测** (sites.json): korea, taipei_npm, brooklyn, mfa,
+1. **untested 海外站探测** (sites.json): korea, taipei_npm, brooklyn, mfa,
    guimet, asian_art_sf — 探测 → 可行则写蜘蛛
-3. **capital_museum** (static_verified) → 静态爬虫
-4. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
+2. **capital_museum** (static_verified) → 静态爬虫
+3. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
    shaanxi, nanjing, shanxi, liaoning, sichuan, guangdong, gansu, guangxi,
    fujian, jiangxi, chongqing, yin_ruins, sanxingdui
-5. **gugong** Playwright 骨架落地 (`spiders/domestic/central/gugong.py`)
-6. key_required 站点 (freer_sackler, rijksmuseum, harvard) 无 key, 暂缓
+4. **gugong** Playwright 骨架落地 (`spiders/domestic/central/gugong.py`)
+5. key_required 站点 (freer_sackler, rijksmuseum, harvard) 无 key, 暂缓
 
 ## 完成定义
 
@@ -101,6 +96,17 @@
   返回 400 Bad Request 而非 401/404, 易误判)。API 返回结果含 resultset.count/
   page/limit, limit 上限 100。colbase 偶发 SSL 断连 (约 40 请求后), 加
   try/retry + 8s 退避即可, 非硬限流。
+- **colbase media 端点抖动** (2026-11-02): 图片 URL (media/…/image/…) 间歇性
+  200/404/ReadTimeout (同 URL 三连测 200/200/404), 且部分藏品只有缩略图变体
+  存活; 下载必须带 4-5 次重试 (HTTPError 404 + ConnectionError/ReadTimeout
+  都重试), 一轮不重试的 88 件全部假失败。
+- **TNM「東洋」分类陷阱** (2026-11-02, colbase): TNM bunrui=東洋陶磁/東洋考古
+  不只含中国, 还含印度 (ムガル朝玉器)、中东 (シュメル装身具)、中亚 (前期青銅器
+  時代 BMAC ラピスラズリ) — 玉器大国印度莫卧儿玉尤其易混入清玉堆; 过滤必须加
+  非中国文明词表 (NCN_ERA_RE)。楽浪 (汉四郡) 属中国汉文化, 不排除。
+- **导入流水号防冲突** (2026-11-02): import_museum 的每日流水 base_seq 原用
+  count(今日行)+1 起算, 手工删除中间行后 count 空洞会让新行重生成尾部已存在的
+  登录号 → 冲突跳过; 已改为 max(今日登录号后缀) 起算, 对删除免疫。
 - **Bash 后台命令 10 分钟时限** (2026-10-30 教训): run_in_background 默认
   600s 超时被杀, 长任务 (全库续跑 ~40 分钟) 必须显式 timeout (上限 7200000);
   被硬杀会丢内存中的 processed 进度 (checkpoint 不会保存)。另外 WindowsApps

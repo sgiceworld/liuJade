@@ -176,11 +176,14 @@ def import_museum(museum: str, db_path: str = None, dry_run: bool = False,
     session = create_database(db_path)
     now = datetime.now()
     stats = {'imported': 0, 'skipped_conflict': 0, 'images': 0}
-    # 每日流水从库中今日已有记录数 + 1 起算, 避免同日重复登录号
+    # 每日流水从库中今日已有最大流水号起算, 避免同日重复登录号。
+    # 注意用 max(后缀) 而非 count: 手工删除中间行会造成 count 空洞,
+    # count+1 会重生成尾部已存在的登录号 → 冲突 (2026-11-02 colbase 教训)
     today_prefix = f"JY{now.strftime('%Y%m%d')}"
-    from sqlalchemy import func
-    base_seq = session.query(func.count(JadePiece.id)).filter(
-        JadePiece.login_number.like(f"{today_prefix}%")).scalar() or 0
+    today_logins = session.query(JadePiece.login_number).filter(
+        JadePiece.login_number.like(f"{today_prefix}%")).all()
+    base_seq = max((int(ln[0][-6:]) for ln in today_logins if ln[0][-6:].isdigit()),
+                   default=0)
     counter = {'login': base_seq, 'era': {}}
     new_phash = set()
 
