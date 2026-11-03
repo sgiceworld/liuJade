@@ -15,6 +15,7 @@ from .overseas.asia_other.tnm import TnmSpider
 from .overseas.asia_other.emuseum import EmuseumSpider
 from .overseas.asia_other.knmdb import KnmdbSpider
 from .overseas.asia_other.colbase import ColbaseSpider
+from .overseas.asia_other.npm import NpmSpider
 from .domestic.central.gugong import GugongSpider
 
 SPIDERS: Dict[str, Type[BaseJadeSpider]] = {
@@ -25,5 +26,6 @@ SPIDERS: Dict[str, Type[BaseJadeSpider]] = {
     'emuseum': EmuseumSpider,
     'knmdb': KnmdbSpider,
     'colbase': ColbaseSpider,
+    'npm': NpmSpider,
     'gugong': GugongSpider,  # 骨架 (需 Playwright, 下轮实现)
 }

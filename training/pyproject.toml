@@ -28,6 +28,8 @@ scraping = [
     "requests>=2.31",
     "beautifulsoup4>=4.12",
     "lxml>=5.0",
+    # Windows 证书库信任源 (npm/iiifod 证书缺 SKI, OpenSSL 严格校验拒绝)
+    "truststore>=0.9",
 ]
 dev = [
     "jupyter",

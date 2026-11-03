@@ -6,7 +6,7 @@
 > daily_scrape.ps1 / daily_scrape_prompt.txt 留存仓库仅作参考, 不再被调度。
 
 **状态: ACTIVE**
-最后更新: 2026-11-02
+最后更新: 2026-11-03
 
 ## 总体进度
 
@@ -20,13 +20,14 @@
 | knmdb (京都国立) | ✅ 负结果坐实 (2026-10-31 逐件复核 408 件全非玉, 证据见 skip_log.jsonl) | 0 | - |
 | senoku (泉屋博古館) | ✅ 负结果坐实 (2026-11-02 43件逐件留档全非玉, 证据见 scraped_data/senoku/skip_log.jsonl) | 0 | - |
 | colbase | ✅ 完成 (2026-11-02, 606件候选 → 309下载导入 / 297拒件留档, 见 skip_log) | 309 | ✅ |
+| untested 海外站探测 | ✅ 完成 (2026-11-03: brooklyn WAF / mfa robots禁搜 / korea 登录 / guimet 无库 / asian_art_sf 无库; **taipei_npm 命中**), 证据 scraped_data/_untested_probe/ | - | - |
+| npm (台北故宫) | 🔄 爬虫落地 2026-11-03 首跑中; 玉器 46页≈13.5k件, 每日续跑 (~160件/日, 全库≈80天) | 5+ | 待首跑后导入 |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **untested 海外站探测** (sites.json): korea, taipei_npm, brooklyn, mfa,
-   guimet, asian_art_sf — 探测 → 可行则写蜘蛛
+1. **npm (台北故宫) 每日续跑**: `HTTPS_PROXY=http://127.0.0.1:7890 python scripts/run_spider.py --spider npm --limit N` (单件 3 请求, 500 配额约 160 件/日), 跑完 `--import-after` 或单独 import; 玉器 13.5k 件全库约 80 天, 可视标注库容量决定是否按时代分层抽样 (清占大头)
 2. **capital_museum** (static_verified) → 静态爬虫
 3. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
    shaanxi, nanjing, shanxi, liaoning, sichuan, guangdong, gansu, guangxi,
@@ -107,6 +108,22 @@
 - **导入流水号防冲突** (2026-11-02): import_museum 的每日流水 base_seq 原用
   count(今日行)+1 起算, 手工删除中间行后 count 空洞会让新行重生成尾部已存在的
   登录号 → 冲突跳过; 已改为 max(今日登录号后缀) 起算, 对删除免疫。
+- **npm 搜索 WAF** (2026-11-03): /Collection/Search 的 POST (AJAX JSON) 被 WAF
+  拦 555 Unauthorized, 同端点 GET + query 参数直接可用 (MVC model binding
+  接受 PageInfo.PageIndex/PageSize 等全部参数, PageSize=300 实测有效);
+  每页 list-item + card 双模式渲染同 cid 两份, 必须按 cid 去重;
+  list 模式 title 属性带无障碍壳「移至 … 另開新視窗」需剥壳, card-title 更干净。
+- **npm「西元」纪年误配** (2026-11-03): 详情时代字段带「西元1368-1644年」注记
+  (带或不带括号), 其中「元」会被 era_map 金元模式 (辽|遼|金|元) 误配 →
+  明器标金元。npm.py 已剥离西元纪年再映射; 跨时代跨度 (明至清/宋或元) 不映射
+  落待OCR确认。凡中文站带公元纪年注记者皆须注意此坑。
+- **npm IIIF 图源** (2026-11-03): manifest GetJson?cid=&dept=U → canvas 资源
+  @id 尺寸段 /full/,300/ 替换为 /full/1600,/ 取大图; iiifod 是 Cantaloupe,
+  2048px+ 403 (尺寸上限), 标识符内 / 必须保留 %2F 编码。
+- **iiifod 证书 SKI 缺失** (2026-11-03): iiifod.npm.gov.tw 证书缺 Subject
+  Key Identifier 扩展, Python 3.14/OpenSSL 严格校验拒绝 (curl/Schannel
+  容忍)。解决: pip install truststore + truststore.inject_into_ssl()
+  (证书校验保持开启, 仅换 Windows 系统证书库为信任源), 勿用 verify=False。
 - **Bash 后台命令 10 分钟时限** (2026-10-30 教训): run_in_background 默认
   600s 超时被杀, 长任务 (全库续跑 ~40 分钟) 必须显式 timeout (上限 7200000);
   被硬杀会丢内存中的 processed 进度 (checkpoint 不会保存)。另外 WindowsApps

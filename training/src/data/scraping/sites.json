@@ -357,10 +357,10 @@
       "type": "api",
       "base_url": "https://www.brooklynmuseum.org",
       "entry_url": "https://www.brooklynmuseum.org/opencollection/api/objects?keyword=jade",
-      "status": "untested",
-      "status_note": "开放 API, 待验证",
+      "status": "blocked_waf",
+      "status_note": "2026-11-03 探测: 全站 (含 /robots.txt 与旧 opencollection API) 返回 429 Vercel Security Checkpoint (JS 挑战页), requests-only 不可行, 需浏览器 (下轮)",
       "spider": null,
-      "verified_at": null
+      "verified_at": "2026-11-03"
     },
     {
       "id": "mfa",
@@ -371,11 +371,11 @@
       "priority": "P1",
       "type": "api",
       "base_url": "https://www.mfa.org",
-      "entry_url": "https://www.mfa.org/collections/api/object/search?q=jade",
-      "status": "untested",
-      "status_note": "API 端点需实现时核实",
+      "entry_url": "https://collections.mfa.org/",
+      "status": "robots_blocked",
+      "status_note": "2026-11-03 探测: 官网 /collections/api 端点 404 (Drupal); 藏品站 collections.mfa.org robots.txt 明确 Disallow /search /advancesearch /search/*/objects (Crawl-delay 30) → 搜索枚举不被允许, 尊重 robots 放弃",
       "spider": null,
-      "verified_at": null
+      "verified_at": "2026-11-03"
     },
     {
       "id": "vam",
@@ -402,10 +402,10 @@
       "type": "js",
       "base_url": "https://www.guimet.fr",
       "entry_url": "https://www.guimet.fr/",
-      "status": "untested",
-      "status_note": null,
+      "status": "no_online_db",
+      "status_note": "2026-11-03 探测: 官网 Drupal, robots.txt Disallow /search/; /fr/collections 仅精选高亮页 (个位数); collection.guimet.fr 子域 DNS 不存在 → 无在线藏品检索库, 放弃",
       "spider": null,
-      "verified_at": null
+      "verified_at": "2026-11-03"
     },
     {
       "id": "asian_art_sf",
@@ -415,12 +415,12 @@
       "subregion": "north_america",
       "priority": "P1",
       "type": "static",
-      "base_url": "https://asianart.emuseum.com",
-      "entry_url": "https://asianart.emuseum.com/collections",
-      "status": "untested",
-      "status_note": "eMuseum 系统, 待探测",
+      "base_url": "https://collections.asianart.org",
+      "entry_url": "https://collections.asianart.org/online-collection/",
+      "status": "no_db",
+      "status_note": "2026-11-03 探测: 旧域 asianart.emuseum.com SSL 已坏; 新站 collections.asianart.org (WP) 仅 13 件精选藏品 (aam__collections sitemap), WP 搜索 'jade' 0 结果, /online-collection/ 检索页返回 202 空体 (bot gate) → 在线藏品库未公开, 放弃",
       "spider": null,
-      "verified_at": null
+      "verified_at": "2026-11-03"
     },
     {
       "id": "tnm_tokyo",
@@ -447,10 +447,10 @@
       "type": "api",
       "base_url": "https://www.museum.go.kr",
       "entry_url": "https://www.museum.go.kr/",
-      "status": "untested",
-      "status_note": null,
+      "status": "login_required",
+      "status_note": "2026-11-03 探测: robots.txt Disallow /search/; 藏品检索 (mypage_relic_list) 需会员登录 → 放弃",
       "spider": null,
-      "verified_at": null
+      "verified_at": "2026-11-03"
     },
     {
       "id": "taipei_npm",
@@ -458,14 +458,14 @@
       "name_cn": "台北故宫博物院",
       "region": "overseas",
       "subregion": "asia_other",
-      "priority": "P1",
-      "type": "api",
-      "base_url": "https://theme.npm.edu.tw",
-      "entry_url": "https://theme.npm.edu.tw/opendata/",
-      "status": "untested",
-      "status_note": "开放数据专区, 待验证",
-      "spider": null,
-      "verified_at": null
+      "priority": "P0",
+      "type": "static",
+      "base_url": "https://digitalarchive.npm.gov.tw",
+      "entry_url": "https://digitalarchive.npm.gov.tw/Collection/Search?RegisterType=%E7%8E%89%E5%99%A8&PageInfo.PageIndex=1&PageInfo.PageSize=300&PageInfo.PageMode=Card",
+      "status": "verified",
+      "status_note": "2026-11-03 探测 (证据 scraped_data/_untested_probe/): 数字典藏检索站全静态可爬。GET /Collection/Search (POST 被 WAF 拦 555) 玉器分类 46 页 @300 ≈ 13.5k 件; 详情 /Collection/Detail/{cid} 含 文物統一編號/品名/分類/時代/尺寸/說明; 图片走 IIIF manifest /Integrate/GetJson?cid=&dept=U → iiifod.npm.gov.tw (Cantaloupe, 1600px 档可用, 2048+ 403)。授权: 低階圖像 CC0, 中階 CC BY 4.0。爬虫 npm 已落地首跑",
+      "spider": "spiders.overseas.asia_other.npm:NpmSpider",
+      "verified_at": "2026-11-03"
     },
     {
       "id": "jilin",
