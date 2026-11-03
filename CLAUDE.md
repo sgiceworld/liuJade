@@ -53,7 +53,7 @@ Example: 0_JY20260802000001_20260802143025_G_001
 - Identify as academic research (JadeResearchBot/1.0)
 - Random delay 3-8s between requests
 - No concurrency, no proxy rotation, single thread
-- Max 500 requests/day per domain
+- Max 1500 requests/day per domain (2026-11-03 上调, 原 500)
 - Respect robots.txt
 
 ## Setup

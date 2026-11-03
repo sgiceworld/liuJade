@@ -21,13 +21,13 @@
 | senoku (泉屋博古館) | ✅ 负结果坐实 (2026-11-02 43件逐件留档全非玉, 证据见 scraped_data/senoku/skip_log.jsonl) | 0 | - |
 | colbase | ✅ 完成 (2026-11-02, 606件候选 → 309下载导入 / 297拒件留档, 见 skip_log) | 309 | ✅ |
 | untested 海外站探测 | ✅ 完成 (2026-11-03: brooklyn WAF / mfa robots禁搜 / korea 登录 / guimet 无库 / asian_art_sf 无库; **taipei_npm 命中**), 证据 scraped_data/_untested_probe/ | - | - |
-| npm (台北故宫) | 🔄 首跑收官 (2026-11-03): 35 件导入 (era 分布 春秋3/明5/金元2/秦汉5/战国2/清2/文化期3/待OCR13); 玉器 46页≈13.5k件, 每日续跑 (~160件/日, 全库≈80天) | 35 | ✅ |
+| npm (台北故宫) | 🔄 分层抽样爬取中 (2026-11-03 用户定策: 时代均衡, 大时代配额/小时代全收, 抽样总量 ~3.8k ≈ 8 天; 配额 500→1500/天); 首跑 35 件已导入 | 35 | ✅ (首批) |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **npm (台北故宫) 每日续跑**: `HTTPS_PROXY=http://127.0.0.1:7890 python scripts/run_spider.py --spider npm --limit N` (单件 3 请求, 500 配额约 160 件/日), 跑完 `--import-after` 或单独 import; 玉器 13.5k 件全库约 80 天, 可视标注库容量决定是否按时代分层抽样 (清占大头)
+1. **npm (台北故宫) 分层抽样续跑**: `HTTPS_PROXY=http://127.0.0.1:7890 python scripts/run_spider.py --spider npm --limit N` (单件 3 请求, 1500 配额约 500 件/日, 抽样总量 ~3.8k ≈ 8 天); 跑完 `--import-after` 或单独 import; 12 个时代轴配额见 npm.py SEARCH_AXES, 轴序 A→L
 2. **capital_museum** (static_verified) → 静态爬虫
 3. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
    shaanxi, nanjing, shanxi, liaoning, sichuan, guangdong, gansu, guangxi,
@@ -54,7 +54,7 @@
   (每日 ≤30 请求, 27 请求/日 实测安全)
 - **GBK 控制台**: run_spider.py 已统一 UTF-8 输出
 - **断点续传**: processed_items 存在 checkpoint.json, 续跑自动跳过
-- **配额 vs 熔断** (2026-10-29 教训): 每日 500 配额用尽时 `_respect_rate_limit`
+- **配额 vs 熔断** (2026-10-29 教训): 每日配额用尽时 `_respect_rate_limit`
   抛 RuntimeError, 曾被 parse_detail 的 `except Exception` 吞掉伪装成网络错误,
   触发 20 次/180s 熔断循环空转 3.7h。已修: base.py 主循环每件前
   `_check_daily_quota()` 前置检查 + knmdb.py except 收窄为
@@ -70,7 +70,7 @@
   knmdb 会互相覆盖 checkpoint.json (processed_items 曾被清空, 已用发现缓存
   前 720 件重建 + 备份 checkpoint.json.bak)。开工前先确认没有并发会话
   (值班代理可用 ListAgents); 同一 spider 绝不并发双开, 并发会造成当日
-  请求合计超 500 配额。
+  请求合计超配额。
 - **详情页结构陷阱 (knmdb 0 玉器根因)** (2026-10-30): knmdb 详情页主体是
   `<th>/<td>` 表结构, 列表页才是 `<dt>/<dd>`; 早期 parse_detail 只解析
   dt/dd → 详情字段全空 → 700+ 件全被误判 not Chinese jade (0 下载假象)。
@@ -135,4 +135,4 @@
 - **jade.db 主键**: 导入用馆方 item_id 作 JadePiece.id; knmdb 纯数字 ID
   (4-33128) 与库内已有数字 ID (cleveland/met 42188+) 无交集, 但新站点接入
   前要先查 ID 区间避免冲突
-- 爬虫伦理: 单线程、随机延时、500请求/天/域名、尊重 robots.txt (CLAUDE.md)
+- 爬虫伦理: 单线程、随机延时、1500请求/天/域名 (2026-11-03 上调)、尊重 robots.txt (CLAUDE.md)

@@ -5,6 +5,9 @@
 - 搜索: GET /Collection/Search?RegisterType=玉器&PageInfo.PageIndex=N
   &PageInfo.PageSize=300 (PageSize=300 实测有效, 玉器分类 46 页 ≈ 13.5k 件;
   15/30/100 也接受)。POST 同端点被 WAF 拦 (555 Unauthorized), 只能走 GET。
+  WestBeginYear/WestEndYear 参数支持按西元纪年过滤 (负数为西元前),
+  实测各时代计数见 SEARCH_AXES 注释。2026-11-03 用户定策: 分层抽样
+  (时代均衡, 大时代配额制, 小时代全收), 见 SEARCH_AXES。
   每页同时渲染 list-item + card 两种模式 (同 cid 双份, 按 cid 去重):
   list-item 的 title 属性带无障碍壳 "移至 品名 另開新視窗",
   card 含 card-title (更干净, 以 card 为准)。
@@ -20,9 +23,9 @@
 - item_id 加 npm_ 前缀: 馆方 cid 纯数字 (48k+), 与 cleveland/met 数字 ID
   (42k-99k) 区间重叠, 直接做主键会撞 jade.db 现有记录 (handoff 教训:
   新站点接入前先查 ID 区间)。
-- 限速: 基类 3-8s; 500 请求/天/域名 (digitalarchive + iiifod 分别计)。
-  单件成本 3 请求 (详情 + manifest + 图), 每日 ~160 件, 全库 ≈ 80 天,
-  每日小批量续跑 (checkpoint 断点续传)。
+- 限速: 基类 3-8s; 1,500 请求/天/域名 (2026-11-03 用户上调, 原 500)。
+  单件成本 3 请求 (详情 + manifest + 图), 每日 ~500 件,
+  抽样总量 ~3.8k ≈ 8 天, 每日续跑 (checkpoint 断点续传)。
 """
 
 import json
@@ -47,7 +50,8 @@ except ImportError:
 NPM_BASE = 'https://digitalarchive.npm.gov.tw'
 SEARCH_TPL = (NPM_BASE + '/Collection/Search?RegisterType={cat}'
               '&PageInfo.PageIndex={page}&PageInfo.PageSize={size}'
-              '&PageInfo.PageMode=Card')
+              '&PageInfo.PageMode=Card'
+              '&WestBeginYear={wb}&WestEndYear={we}')
 DETAIL_TPL = NPM_BASE + '/Collection/Detail/{cid}?dep=U'
 MANIFEST_TPL = NPM_BASE + '/Integrate/GetJson?cid={cid}&dept=U'
 CATEGORY = '玉器'
@@ -98,7 +102,30 @@ def map_npm_era(era: str, title: str):
 
 
 class NpmSpider(BaseJadeSpider):
-    """台北故宫博物院玉器藏品爬虫 (静态 HTML + IIIF manifest)。"""
+    """台北故宫博物院玉器藏品爬虫 (静态 HTML + IIIF manifest)。
+
+    分层抽样 (2026-11-03 用户定策): 大时代配额制, 小时代全收, 时代均衡。
+    各轴计数为 WestBeginYear/WestEndYear 实测页数 @15 (2026-11-03 探测,
+    重叠窗口含重复计数): 文化期 1050 / 商 165 / 西周春秋 300 / 战国 360 /
+    秦汉 375 / 三国晋南北 30 / 隋唐 75 / 五代宋 390 / 金元 1110 / 明 7920
+    (含明至清跨度) / 清 6855 / 民国 180。抽样总量 ~3.8k。
+    """
+
+    # (轴名, 西元起, 西元止, 配额) — 配额为每轴最多处理件数
+    SEARCH_AXES = [
+        ('A_文化期', -8000, -2000, 500),
+        ('B_商', -2000, -1046, 165),
+        ('C_西周春秋', -1046, -476, 300),
+        ('D_战国', -475, -221, 360),
+        ('E_秦汉', -221, 220, 375),
+        ('F_三国晋南北', 220, 581, 30),
+        ('G_隋唐', 581, 907, 75),
+        ('H_五代宋', 907, 1127, 390),
+        ('I_金元', 1115, 1368, 500),
+        ('J_明', 1368, 1644, 500),
+        ('K_清', 1644, 1911, 400),
+        ('L_民国', 1912, 1949, 180),
+    ]
 
     def __init__(self, config=None):
         super().__init__(
@@ -112,17 +139,21 @@ class NpmSpider(BaseJadeSpider):
 
     # ── 发现 ──
 
-    def _load_pages_cache(self) -> Dict[int, List[dict]]:
+    def _load_pages_cache(self) -> Dict[str, Dict[int, List[dict]]]:
+        """缓存格式 v2: {axis: {page: [items]}}; 旧格式 (单轴) 视为过期重建。"""
         if self.pages_cache_file.exists():
             with open(self.pages_cache_file, encoding='utf-8') as f:
                 raw = json.load(f)
-                return {int(k): v for k, v in raw.items()}
+                if raw.get('v') == 2:
+                    axes = raw.get('axes', {})
+                    return {ax: {int(p): items
+                                 for p, items in pages.items()}
+                            for ax, pages in axes.items()}
         return {}
 
-    def _save_pages_cache(self, cache: Dict[int, List[dict]]):
+    def _save_pages_cache(self, cache: Dict[str, Dict[int, List[dict]]]):
         with open(self.pages_cache_file, 'w', encoding='utf-8') as f:
-            json.dump({str(k): v for k, v in sorted(cache.items())},
-                      f, ensure_ascii=False, indent=1)
+            json.dump({'v': 2, 'axes': cache}, f, ensure_ascii=False, indent=1)
             f.flush()
 
     @staticmethod
@@ -152,33 +183,58 @@ class NpmSpider(BaseJadeSpider):
 
     def discover_items(self) -> List[Dict]:
         cache = self._load_pages_cache()
-        # 首页探测总数 (serializedModel 内嵌 PageCount)
-        html = self.get(SEARCH_TPL.format(
-            cat=CATEGORY, page=1, size=PAGE_SIZE)).text
-        m = re.search(r'"PageCount":(\d+)', html)
-        total_pages = int(m.group(1)) if m else 1
-        print(f"[npm] 玉器分类共 {total_pages} 页 (每页 {PAGE_SIZE} 件)")
-        if 1 not in cache:
-            cache[1] = self._parse_search_page(html)
-            self._save_pages_cache(cache)
-
-        # 逐页补齐缓存 (断点: 已缓存的页不再请求)
-        for page in range(2, total_pages + 1):
-            if page in cache:
-                continue
-            try:
-                html = self.get(SEARCH_TPL.format(
-                    cat=CATEGORY, page=page, size=PAGE_SIZE)).text
-            except requests.RequestException:
-                # 网络瞬断: 本轮只处理已缓存的页, 未缓存页下轮补
-                print(f"[npm] 第 {page} 页请求失败, 本轮按已缓存页推进")
-                break
-            cache[page] = self._parse_search_page(html)
-            self._save_pages_cache(cache)
-
         items: List[Dict] = []
-        for page in sorted(cache):
-            items.extend(cache[page])
+        seen: set = set()
+
+        for axis, wb, we, quota in self.SEARCH_AXES:
+            axis_cache = cache.get(axis, {})
+            # 每轴首页探测页数 (serializedModel 内嵌 PageCount)
+            url1 = SEARCH_TPL.format(cat=CATEGORY, page=1, size=PAGE_SIZE,
+                                     wb=wb, we=we)
+            try:
+                html = self.get(url1).text
+            except requests.RequestException:
+                print(f"[npm] 轴 {axis} 首页请求失败, 跳过该轴 (下轮补)")
+                continue
+            m = re.search(r'"PageCount":(\d+)', html)
+            total_pages = int(m.group(1)) if m else 1
+            if 1 not in axis_cache:
+                axis_cache[1] = self._parse_search_page(html)
+                cache[axis] = axis_cache
+                self._save_pages_cache(cache)
+            print(f"[npm] 轴 {axis} [{wb}~{we}] 共 {total_pages} 页, 配额 {quota}")
+
+            # 逐页补齐缓存直到「未处理件」达到配额 (断点续传:
+            # 已处理件不计入配额, 否则续跑时配额窗口被占满导致轴收不满)
+            page = 1
+            axis_out: List[Dict] = []
+            unprocessed = 0
+            while page <= total_pages and unprocessed < quota:
+                if page not in axis_cache:
+                    try:
+                        html = self.get(SEARCH_TPL.format(
+                            cat=CATEGORY, page=page, size=PAGE_SIZE,
+                            wb=wb, we=we)).text
+                    except requests.RequestException:
+                        print(f"[npm] 轴 {axis} 第 {page} 页失败, 本轮收尾该轴")
+                        break
+                    axis_cache[page] = self._parse_search_page(html)
+                    cache[axis] = axis_cache
+                    self._save_pages_cache(cache)
+                for it in axis_cache[page]:
+                    if it['item_id'] in self.processed_items:
+                        axis_out.append(it)  # 已处理, run() 会过滤
+                    elif unprocessed < quota:
+                        unprocessed += 1
+                        axis_out.append(it)
+                page += 1
+            # 跨轴去重 (重叠窗口: 明/清跨度、金元/宋窗口)
+            for it in axis_out:
+                if it['item_id'] not in seen:
+                    seen.add(it['item_id'])
+                    items.append(it)
+            cache[axis] = axis_cache
+            self._save_pages_cache(cache)
         return items
 
     # ── 详情解析 ──
