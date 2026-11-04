@@ -204,12 +204,14 @@ class NpmSpider(BaseJadeSpider):
                 self._save_pages_cache(cache)
             print(f"[npm] 轴 {axis} [{wb}~{we}] 共 {total_pages} 页, 配额 {quota}")
 
-            # 逐页补齐缓存直到「未处理件」达到配额 (断点续传:
-            # 已处理件不计入配额, 否则续跑时配额窗口被占满导致轴收不满)
+            # 配额窗口 = 该轴前 quota 个位置 (按页序)。已处理件占窗口
+            # 但被 run() 过滤; 窗口内未处理件 (含昨日网络错误遗留) 继续重试;
+            # 窗口外一律不收 (2026-11-04 修正: 原先按「未处理件数」收集,
+            # 配额窗口每天漂移导致轴超收)
             page = 1
+            collected = 0
             axis_out: List[Dict] = []
-            unprocessed = 0
-            while page <= total_pages and unprocessed < quota:
+            while page <= total_pages and collected < quota:
                 if page not in axis_cache:
                     try:
                         html = self.get(SEARCH_TPL.format(
@@ -222,11 +224,10 @@ class NpmSpider(BaseJadeSpider):
                     cache[axis] = axis_cache
                     self._save_pages_cache(cache)
                 for it in axis_cache[page]:
-                    if it['item_id'] in self.processed_items:
-                        axis_out.append(it)  # 已处理, run() 会过滤
-                    elif unprocessed < quota:
-                        unprocessed += 1
-                        axis_out.append(it)
+                    if collected >= quota:
+                        break
+                    axis_out.append(it)
+                    collected += 1
                 page += 1
             # 跨轴去重 (重叠窗口: 明/清跨度、金元/宋窗口)
             for it in axis_out:

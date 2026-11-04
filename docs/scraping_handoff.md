@@ -21,7 +21,7 @@
 | senoku (泉屋博古館) | ✅ 负结果坐实 (2026-11-02 43件逐件留档全非玉, 证据见 scraped_data/senoku/skip_log.jsonl) | 0 | - |
 | colbase | ✅ 完成 (2026-11-02, 606件候选 → 309下载导入 / 297拒件留档, 见 skip_log) | 309 | ✅ |
 | untested 海外站探测 | ✅ 完成 (2026-11-03: brooklyn WAF / mfa robots禁搜 / korea 登录 / guimet 无库 / asian_art_sf 无库; **taipei_npm 命中**), 证据 scraped_data/_untested_probe/ | - | - |
-| npm (台北故宫) | 🔄 分层抽样首日 590 件入库 (文化期轴 555+首跑35; 商轴明日起); 抽样总量 ~3.8k ≈ 8 天, 配额 1500/天 | 590 | ✅ |
+| npm (台北故宫) | 🔄 分层抽样第2天 +591 件 (累计1181; 文化期✅商✅西周春秋✅战国部分; 明日起秦汉轴); 总量 ~3.8k ≈ 6 天余 | 1181 | ✅ |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
