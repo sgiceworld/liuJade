@@ -654,13 +654,13 @@
       "region": "domestic",
       "subregion": "municipal",
       "priority": "P1",
-      "type": "static",
+      "type": "js",
       "base_url": "https://www.capitalmuseum.org.cn",
-      "entry_url": "https://www.capitalmuseum.org.cn/",
-      "status": "static_verified",
-      "status_note": "探测(2026-09-28): 静态可爬 (样例图可能为首页配图, 实现前需人工核实)",
+      "entry_url": "https://www.capitalmuseum.org.cn/collection",
+      "status": "needs_browser",
+      "status_note": "2026-11-04 复核 (证据 scraped_data/_capital_probe/): 9-28 旧结论 static_verified 撤销 — Nuxt SPA, 藏品列表客户端 API 加载 (SSR 仅分类 JSON: 玉器 classid=112), 详情页 /article/{hash} 静态可渲染但无列表 API 无法枚举; 图片域 m.canalmuseum.org.cn。需浏览器抓 XHR 或挖页面专属 chunk, 下轮 (Playwright)",
       "spider": null,
-      "verified_at": null
+      "verified_at": "2026-11-04"
     },
     {
       "id": "liangzhu",

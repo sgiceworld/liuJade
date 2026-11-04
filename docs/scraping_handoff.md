@@ -28,7 +28,8 @@
 ## 下一步 (按优先级推进)
 
 1. **npm (台北故宫) 分层抽样续跑**: `HTTPS_PROXY=http://127.0.0.1:7890 python scripts/run_spider.py --spider npm --limit N` (单件 3 请求, 1500 配额约 500 件/日, 抽样总量 ~3.8k ≈ 8 天); 跑完 `--import-after` 或单独 import; 12 个时代轴配额见 npm.py SEARCH_AXES, 轴序 A→L
-2. **capital_museum** (static_verified) → 静态爬虫
+2. **capital_museum** — 2026-11-04 复核: Nuxt SPA 藏品列表走客户端 API
+   (needs_browser), 与 reachable 国内站同批走 Playwright/挖接口
 3. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
    shaanxi, nanjing, shanxi, liaoning, sichuan, guangdong, gansu, guangxi,
    fujian, jiangxi, chongqing, yin_ruins, sanxingdui
