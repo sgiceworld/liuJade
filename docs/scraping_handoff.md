@@ -6,7 +6,7 @@
 > daily_scrape.ps1 / daily_scrape_prompt.txt 留存仓库仅作参考, 不再被调度。
 
 **状态: ACTIVE**
-最后更新: 2026-11-04
+最后更新: 2026-11-11
 
 ## 总体进度
 
@@ -21,13 +21,13 @@
 | senoku (泉屋博古館) | ✅ 负结果坐实 (2026-11-02 43件逐件留档全非玉, 证据见 scraped_data/senoku/skip_log.jsonl) | 0 | - |
 | colbase | ✅ 完成 (2026-11-02, 606件候选 → 309下载导入 / 297拒件留档, 见 skip_log) | 309 | ✅ |
 | untested 海外站探测 | ✅ 完成 (2026-11-03: brooklyn WAF / mfa robots禁搜 / korea 登录 / guimet 无库 / asian_art_sf 无库; **taipei_npm 命中**), 证据 scraped_data/_untested_probe/ | - | - |
-| npm (台北故宫) | 🔄 分层抽样第2天 +591 件 (累计1181; 文化期✅商✅西周春秋✅战国部分; 明日起秦汉轴); 总量 ~3.8k ≈ 6 天余 | 1181 | ✅ |
+| npm (台北故宫) | 🔄 分层抽样第3天 +699 件 (累计1880; 文化期✅商✅西周春秋✅战国✅秦汉✅三国晋南北✅隋唐✅ 五代宋 75/390; 明日起五代宋轴); 剩余 ~1895 ≈ 3 天余 | 1880 | ✅ |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **npm (台北故宫) 分层抽样续跑**: `HTTPS_PROXY=http://127.0.0.1:7890 python scripts/run_spider.py --spider npm --limit N` (单件 3 请求, 1500 配额约 500 件/日, 抽样总量 ~3.8k ≈ 8 天); 跑完 `--import-after` 或单独 import; 12 个时代轴配额见 npm.py SEARCH_AXES, 轴序 A→L
+1. **npm (台北故宫) 分层抽样续跑**: `HTTPS_PROXY=http://127.0.0.1:7890 python scripts/run_spider.py --spider npm --limit N` (单件 3 请求, 1500 配额约 700 件/日 [第3天实测], 剩余 ~1895 ≈ 3 天); 跑完 `--import-after` 或单独 import; 12 个时代轴配额见 npm.py SEARCH_AXES, 轴序 A→L; 当前轴: H_五代宋 (75/390)
 2. **capital_museum** — 2026-11-04 复核: Nuxt SPA 藏品列表走客户端 API
    (needs_browser), 与 reachable 国内站同批走 Playwright/挖接口
 3. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
@@ -98,6 +98,12 @@
   返回 400 Bad Request 而非 401/404, 易误判)。API 返回结果含 resultset.count/
   page/limit, limit 上限 100。colbase 偶发 SSL 断连 (约 40 请求后), 加
   try/retry + 8s 退避即可, 非硬限流。
+- **npm iiifod 连接重置可中断整批** (2026-11-11): iiifod 偶发
+  ConnectionResetError(10054) 逃逸逐件异常处理, 使 run() 提前收尾
+  (已处理件进度不丢 — finally 里保存 checkpoint; 未轮到件下轮继续)。
+  对策: 批次控制在 ~220 件以内 (2h 后台上限内), 中断后直接补跑小批。
+  第3天 699 件 = 4 批 (300+220+215+60), 其中 215 批被中断只完成 140,
+  补 60 小批后 digitalarchive 恰满 1500 配额正常收尾。
 - **colbase media 端点抖动** (2026-11-02): 图片 URL (media/…/image/…) 间歇性
   200/404/ReadTimeout (同 URL 三连测 200/200/404), 且部分藏品只有缩略图变体
   存活; 下载必须带 4-5 次重试 (HTTPError 404 + ConnectionError/ReadTimeout
