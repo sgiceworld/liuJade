@@ -397,6 +397,7 @@ class BaseJadeSpider(ABC):
         skipped = 0
         skip_reasons: Dict[str, int] = {}
         consecutive_net_errors = 0
+        consecutive_img_errors = 0
 
         try:
             items = self.discover_items()
@@ -438,6 +439,7 @@ class BaseJadeSpider(ABC):
                     [[u] for u in (detail.get('image_urls')
                                    or item.get('image_urls', []))]
 
+                img_net_fail = False
                 for group in groups:
                     urls = group if isinstance(group, (list, tuple)) else [group]
                     if dry_run:
@@ -454,11 +456,33 @@ class BaseJadeSpider(ABC):
                             # 404 等 → 尝试组内下一候选, 不中断整轮
                             print(f"    ⚠ 图片 HTTP {e.response.status_code}: {url[:80]}")
                             continue
+                        except requests.RequestException as e:
+                            # 连接级错误 (ReadTimeout/ConnectionError/
+                            # ChunkedEncodingError 重试后仍失败): 不杀整批,
+                            # 不标记已处理 (下轮图源恢复后重试)。
+                            # 2026-11-12 教训: iiifod ReadTimeout 逃逸逐件
+                            # 异常处理, 曾连续杀死 3 个批次 (0 下载早退)
+                            print(f"    ⚠ 图片连接错误 ({type(e).__name__}): {url[:80]}")
+                            img_net_fail = True
+                            continue
                         if metadata:
                             downloaded += 1
                             if downloaded % 10 == 0:
                                 print(f"[{self.name}] Downloaded {downloaded} images...")
                             break  # 该组已得一张, 不再下载备选
+                if img_net_fail:
+                    # 件不标记已处理 (下轮重试, 不丢图);
+                    # 连续 10 件图片连接失败 → 图源疑似宕机, 提前收尾,
+                    # 避免白烧详情/manifest 请求配额
+                    skipped += 1
+                    skip_reasons['图片网络错误'] = \
+                        skip_reasons.get('图片网络错误', 0) + 1
+                    consecutive_img_errors += 1
+                    if consecutive_img_errors >= 10:
+                        print(f"[{self.name}] 连续 {consecutive_img_errors} 件图片连接失败,"
+                              f" 图源疑似宕机, 提前收尾本轮 (进度已保存, 恢复后补跑)")
+                        break
+                    continue
                 # 全部图片尝试完毕后才标记已处理 (dry-run 不标记)
                 if not dry_run:
                     self.processed_items.add(item['item_id'])
