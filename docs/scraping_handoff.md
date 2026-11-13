@@ -6,7 +6,7 @@
 > daily_scrape.ps1 / daily_scrape_prompt.txt 留存仓库仅作参考, 不再被调度。
 
 **状态: ACTIVE**
-最后更新: 2026-11-13
+最后更新: 2026-11-14
 
 ## 总体进度
 
@@ -21,13 +21,13 @@
 | senoku (泉屋博古館) | ✅ 负结果坐实 (2026-11-02 43件逐件留档全非玉, 证据见 scraped_data/senoku/skip_log.jsonl) | 0 | - |
 | colbase | ✅ 完成 (2026-11-02, 606件候选 → 309下载导入 / 297拒件留档, 见 skip_log) | 309 | ✅ |
 | untested 海外站探测 | ✅ 完成 (2026-11-03: brooklyn WAF / mfa robots禁搜 / korea 登录 / guimet 无库 / asian_art_sf 无库; **taipei_npm 命中**), 证据 scraped_data/_untested_probe/ | - | - |
-| npm (台北故宫) | 🔄 第4天 +210 件 (累计2090; 文化期✅商✅西周春秋✅战国✅秦汉✅三国晋南北✅隋唐✅ 五代宋轴续跑中; 11-12 14:15 起 iiifod 图源长宕机, 当日配额远未用尽); 剩余 ~1695 | 2090 | ✅ |
+| npm (台北故宫) | 🔄 第5天 0 件 (累计2090; 文化期✅商✅西周春秋✅战国✅秦汉✅三国晋南北✅隋唐✅ 五代宋轴续跑中; iiifod 图源 11-12 14:15 起持续宕机 ~35h, 第4/5两天配额基本未用); 剩余 ~1695 | 2090 | ✅ |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **npm (台北故宫) 分层抽样续跑**: iiifod 图源 11-12 14:15 起长宕机 (11-13 13:22 仍未恢复, ~23h), **先探活再跑批** (curl 测 iiifod 图 URL 返 200, 否则跑批白烧 digitalarchive 配额); 恢复后 `HTTPS_PROXY=http://127.0.0.1:7890 python scripts/run_spider.py --spider npm --limit N` (单件 3 请求, 1500 配额约 700 件/日 [第3天实测]); 跑完 `--import-after` 或单独 import; 12 个时代轴配额见 npm.py SEARCH_AXES, 轴序 A→L; 当前轴: H_五代宋; 剩余 ~1695 ≈ 3 天
+1. **npm (台北故宫) 分层抽样续跑**: iiifod 图源 11-12 14:15 起长宕机 (11-14 01:00 仍未恢复, ~35h, 整站 TCP 层不可达 — 根路径/HTTP/HTTPS 全超时, digitalarchive 同馆健康), **先探活再跑批** (python truststore 探活器测 iiifod 图 URL 返 200, 否则跑批白烧 digitalarchive 配额); 恢复后 `HTTPS_PROXY=http://127.0.0.1:7890 /c/Users/LiuCN/AppData/Local/Python/pythoncore-3.14-64/python.exe /d/liuJade/training/scripts/run_spider.py --spider npm --limit N` (单件 3 请求, 1500 配额约 700 件/日 [第3天实测]; 命令须以放行的 python 绝对路径或 HTTPS_PROXY 前缀开头, 勿带 cd 前缀, 否则 Auto 模式 allow 规则不匹配); 跑完 `--import-after` 或单独 import; 12 个时代轴配额见 npm.py SEARCH_AXES, 轴序 A→L; 当前轴: H_五代宋; 剩余 ~1695 ≈ 3 天
 2. **capital_museum** — 2026-11-04 复核: Nuxt SPA 藏品列表走客户端 API
    (needs_browser), 与 reachable 国内站同批走 Playwright/挖接口
 3. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
