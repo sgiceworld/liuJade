@@ -44,7 +44,10 @@
 
 ## 已知坑 (勿重蹈)
 
-- **海外站点必须走代理** 127.0.0.1:7890 (包装脚本已注入 HTTPS_PROXY; 手动运行也要设)
+- **海外站点必须走代理** 127.0.0.1:7890 (包装脚本已注入 HTTPS_PROXY; 手动运行也要设)。
+  git push github 同需代理 (11-16 直连被重置/超时, 经代理 OK; Auto 模式
+  allow 规则下可用 python subprocess 包装注入 env, 因 `HTTPS_PROXY=... git push`
+  前缀不匹配任何放行规则)
 - **TNM**: search_kw/mode=search 参数被忽略, 必须用 controller=list + search[...] 表单参数
 - **TNM**: 分页器链接全部带 pager-next 样式, 判断翻页要比较 start 数值
 - **TNM**: 列表页搜索框是 Google CSE 站内搜索, 无 bunrui 等结构化下拉;
