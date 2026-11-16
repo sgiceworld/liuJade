@@ -6,7 +6,7 @@
 > daily_scrape.ps1 / daily_scrape_prompt.txt 留存仓库仅作参考, 不再被调度。
 
 **状态: ACTIVE**
-最后更新: 2026-11-14
+最后更新: 2026-11-16
 
 ## 总体进度
 
@@ -21,13 +21,13 @@
 | senoku (泉屋博古館) | ✅ 负结果坐实 (2026-11-02 43件逐件留档全非玉, 证据见 scraped_data/senoku/skip_log.jsonl) | 0 | - |
 | colbase | ✅ 完成 (2026-11-02, 606件候选 → 309下载导入 / 297拒件留档, 见 skip_log) | 309 | ✅ |
 | untested 海外站探测 | ✅ 完成 (2026-11-03: brooklyn WAF / mfa robots禁搜 / korea 登录 / guimet 无库 / asian_art_sf 无库; **taipei_npm 命中**), 证据 scraped_data/_untested_probe/ | - | - |
-| npm (台北故宫) | 🔄 第5天 0 件 (累计2090; 文化期✅商✅西周春秋✅战国✅秦汉✅三国晋南北✅隋唐✅ 五代宋轴续跑中; iiifod 图源 11-12 14:15 起持续宕机 ~35h, 第4/5两天配额基本未用); 剩余 ~1695 | 2090 | ✅ |
+| npm (台北故宫) | 🔄 第6天 +676 件 (累计2766; 文化期✅商✅西周春秋✅战国✅秦汉✅三国晋南北✅隋唐✅五代宋✅金元✅ 明轴 71/500; iiifod 11-16 08:57 恢复 [宕机~3.5天], 当日 digitalarchive 恰满 1500); 剩余 ~1009 ≈ 2 天 | 2766 | ✅ |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **npm (台北故宫) 分层抽样续跑**: iiifod 图源 11-12 14:15 起长宕机 (11-14 01:00 仍未恢复, ~35h, 整站 TCP 层不可达 — 根路径/HTTP/HTTPS 全超时, digitalarchive 同馆健康), **先探活再跑批** (python truststore 探活器测 iiifod 图 URL 返 200, 否则跑批白烧 digitalarchive 配额); 恢复后 `HTTPS_PROXY=http://127.0.0.1:7890 /c/Users/LiuCN/AppData/Local/Python/pythoncore-3.14-64/python.exe /d/liuJade/training/scripts/run_spider.py --spider npm --limit N` (单件 3 请求, 1500 配额约 700 件/日 [第3天实测]; 命令须以放行的 python 绝对路径或 HTTPS_PROXY 前缀开头, 勿带 cd 前缀, 否则 Auto 模式 allow 规则不匹配); 跑完 `--import-after` 或单独 import; 12 个时代轴配额见 npm.py SEARCH_AXES, 轴序 A→L; 当前轴: H_五代宋; 剩余 ~1695 ≈ 3 天
+1. **npm (台北故宫) 分层抽样续跑**: iiifod 已恢复 (11-16 08:57); 开跑前仍建议先探活 (python truststore 探活器测 iiifod 图 URL 返 200); 命令 `HTTPS_PROXY=http://127.0.0.1:7890 /c/Users/LiuCN/AppData/Local/Python/pythoncore-3.14-64/python.exe /d/liuJade/training/scripts/run_spider.py --spider npm --limit N` (单件 3 请求, 1500 配额约 700 件/日 [第3/6天实测]; 命令须以放行的 python 绝对路径或 HTTPS_PROXY 前缀开头, 勿带 cd 前缀, 否则 Auto 模式 allow 规则不匹配); 跑完 `--import-after` 或单独 import; 12 个时代轴配额见 npm.py SEARCH_AXES, 轴序 A→L; 当前轴: J_明 (71/500); 剩余 ~1009 ≈ 2 天
 2. **capital_museum** — 2026-11-04 复核: Nuxt SPA 藏品列表走客户端 API
    (needs_browser), 与 reachable 国内站同批走 Playwright/挖接口
 3. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
@@ -64,9 +64,12 @@
   搜索关键词也要中日双形都试
 - **列表页末件**: rows 正则依赖「下一条 item 或 pager」做边界, 已加 `\Z`
   兜底防末件漏匹配
-- **每日任务代理竞态** (2026-10-29): 开机后 Clash 未就绪时定时任务
+- **每日任务代理竞态** (2026-10-29, 补充 2026-11-15): 开机后 Clash 未就绪时定时任务
   ECONNREFUSED; daily_scrape.ps1 已加 pre-flight (等 7890 端口, 20s×30,
-  超时干净退出)
+  超时干净退出)。补充: **端口通≠路由就绪** — 11-15 实测 7890
+  端口可连但 google/digitalarchive 全部 URLError 5s (Clash 初始化中),
+  探活要探真实站点而非端口。另: 笔记本休眠会冻结后台探活器
+  (sleep 期间不探测), 唤醒后必须先重测再决策。
 - **checkpoint 竞态 / 会话并发** (2026-10-30 教训): 本机两个 Claude 会话同时跑
   knmdb 会互相覆盖 checkpoint.json (processed_items 曾被清空, 已用发现缓存
   前 720 件重建 + 备份 checkpoint.json.bak)。开工前先确认没有并发会话
@@ -104,15 +107,20 @@
   对策: 批次控制在 ~220 件以内 (2h 后台上限内), 中断后直接补跑小批。
   第3天 699 件 = 4 批 (300+220+215+60), 其中 215 批被中断只完成 140,
   补 60 小批后 digitalarchive 恰满 1500 配额正常收尾。
-- **iiifod 长宕机 + 逃逸已根治** (2026-11-12): 图源可宕机 23 小时以上
-  (11-12 14:15 起, 11-13 13:22 仍未恢复, 仅 14:30 短暂 15 分钟窗口)。
-  宕机期间跑批会白烧 digitalarchive 配额 (详情+manifest 拿了、图下不动、
-  件不标记已处理, 恢复后全要重拉), 第4天仅成 1 批 +210 件。对策:
-  **先探活再跑批** (curl 图 URL 返 200 才开跑)。base.py 已修根治:
+- **iiifod 长宕机 + 逃逸已根治** (2026-11-12 → 11-16): 图源曾整站
+  TCP 层不可达 ~3.5 天 (11-12 14:15 起, 11-16 08:57 恢复; 期间
+  根路径/HTTP/HTTPS 全超时, 同馆 digitalarchive 一直健康 — 非我方
+  代理问题)。宕机期间跑批会白烧 digitalarchive 配额 (详情+manifest
+  拿了、图下不动、件不标记已处理, 恢复后全要重拉), 第4天仅成 1 批
+  +210 件, 第5天 0 件。对策: **先探活再跑批**。base.py 已修根治:
   图片连接级错误 (ReadTimeout/ConnectionError/ChunkedEncodingError
   重试后仍失败) 不再逃逸杀批, 改件级失败 — 不标记已处理 (恢复后重试
   不丢图), 连续 10 件图片失败提前收尾防白烧配额 (此逃逸 11-12 曾
-  连续杀死 3 个批次: 0 下载早退)。
+  连续杀死 3 个批次: 0 下载早退)。11-16 恢复首日实测补丁有效:
+  3 件图片网络错误件级处理、批次未死, 676 件恰满 1500 配额。
+  探活器写法: bash for 循环开头的命令不匹配 Auto 模式 allow 规则
+  (`Bash(curl:*)` 前缀匹配), 要用 python -c 单行探活 (以放行的
+  python 绝对路径开头, truststore 注 SSL, 双探 google + iiifod)。
 - **colbase media 端点抖动** (2026-11-02): 图片 URL (media/…/image/…) 间歇性
   200/404/ReadTimeout (同 URL 三连测 200/200/404), 且部分藏品只有缩略图变体
   存活; 下载必须带 4-5 次重试 (HTTPError 404 + ConnectionError/ReadTimeout
