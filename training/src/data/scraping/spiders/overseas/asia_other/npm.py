@@ -289,7 +289,16 @@ class NpmSpider(BaseJadeSpider):
 
         # IIIF manifest → 图片
         try:
-            manifest = self.get(MANIFEST_TPL.format(cid=cid)).json()
+            resp = self.get(MANIFEST_TPL.format(cid=cid))
+            if not resp.content.strip():
+                # 空 body = 该件无 IIIF 数字化 (详情页亦无清单链接),
+                # 是终态而非网络错误 — 2026-11-17 教训: 曾误判 网络错误
+                # 导致 133 件空清单件死循环重试 (JSONDecodeError 属
+                # RequestException 被误吞)
+                self._record_skip(cid, 'no manifest', title, category, era_raw)
+                return {'item_id': item_id, 'title': title, 'image_urls': [],
+                        'skip_reason': 'no manifest'}
+            manifest = resp.json()
         except requests.RequestException:
             return {'item_id': item_id, 'title': title, 'image_urls': [],
                     'skip_reason': '网络错误'}
