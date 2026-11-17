@@ -27,12 +27,12 @@
 
 ## 下一步 (按优先级推进)
 
-1. **(可选) npm 扩样**: 窗口外缓存 612 件 (A p3 300 件、K p2 172 件、
-   J p2 91 件、I p2 89 件、A p2 41 件) 若用户决定扩大样本, 把 npm.py
-   SEARCH_AXES 对应轴配额上调 (A 500→800 可收 p2 尾+p3; K 400→600
-   可收 p2 尾; J/I 500→600), 续跑即可自动收 (缓存已有, 不烧搜索页
-   配额; 每件 ~2 请求, 612 件 ≈ 1300 请求 ≈ 1 天)。默认不扩, 分层
-   抽样按 2026-11-03 用户定策已完成。
+1. **npm 扩样 (已定策 2026-11-17, 进行中)**: 用户拍板收掉窗口外 612 件。
+   已上调 SEARCH_AXES: A 500→900 (覆盖 p3)、I/J 500→600、K 400→600
+   (收完 p2); 缓存已有不烧搜索页配额, 每件 ~2 请求, 612 件 ≈ 1300
+   请求 ≈ 1 天, 预计 11-18 收完。命令
+   `HTTPS_PROXY=http://127.0.0.1:7890 /c/Users/LiuCN/AppData/Local/Python/pythoncore-3.14-64/python.exe /d/liuJade/training/scripts/run_spider.py --spider npm --limit 220 --import-after`
+   (勿带 cd 前缀/多余 env 前缀, 否则 Auto 模式 allow 规则不匹配)。
 2. **capital_museum** — 2026-11-04 复核: Nuxt SPA 藏品列表走客户端 API
    (needs_browser), 与 reachable 国内站同批走 Playwright/挖接口
 3. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
