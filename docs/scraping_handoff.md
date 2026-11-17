@@ -6,7 +6,7 @@
 > daily_scrape.ps1 / daily_scrape_prompt.txt 留存仓库仅作参考, 不再被调度。
 
 **状态: ACTIVE**
-最后更新: 2026-11-17 17:20 (代理已换节点恢复; 空清单件 bug 已修, 批续跑中)
+最后更新: 2026-11-17 18:05 (npm 分层抽样完成 ✅)
 
 ## 总体进度
 
@@ -21,22 +21,18 @@
 | senoku (泉屋博古館) | ✅ 负结果坐实 (2026-11-02 43件逐件留档全非玉, 证据见 scraped_data/senoku/skip_log.jsonl) | 0 | - |
 | colbase | ✅ 完成 (2026-11-02, 606件候选 → 309下载导入 / 297拒件留档, 见 skip_log) | 309 | ✅ |
 | untested 海外站探测 | ✅ 完成 (2026-11-03: brooklyn WAF / mfa robots禁搜 / korea 登录 / guimet 无库 / asian_art_sf 无库; **taipei_npm 命中**), 证据 scraped_data/_untested_probe/ | - | - |
-| npm (台北故宫) | 🔄 第7天 +214 件 (累计2980; 文化期✅商✅西周春秋✅战国✅秦汉✅三国晋南北✅隋唐✅五代宋✅金元✅ 明轴窗口已满500✅ 清轴窗口推进中; **空清单件 bug 已修** — 133 件无 IIIF 数字化件曾被误判网络错误死循环, 现归 no manifest 终态留档); 剩余 ~795 ≈ 1.5 天 | 2980 | ✅ |
+| npm (台北故宫) | ✅ **完成 (2026-11-17)** — 12 时代轴配额窗口全部清零: 3110 件处理 (3012 件有图导入 / 98 件无 IIIF 数字化留档 skip_log)。缓存另有 612 件窗口外件 (A p3、I/J/K p2 尾部) 属分层抽样设计排除, 未处理; 如需扩样见下一步 | 3012 | ✅ |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **npm (台北故宫) 分层抽样续跑**: 11-17 代理已换节点恢复 (用户操作),
-   第2批 +169 件成功。空清单件 bug 已修并验证 (见已知坑 11-17 条目),
-   当前批正在清 133 件 no-manifest 遗留件; 之后续跑新件 (缺页缓存会
-   自动重拉)。命令
-   `HTTPS_PROXY=http://127.0.0.1:7890 /c/Users/LiuCN/AppData/Local/Python/pythoncore-3.14-64/python.exe /d/liuJade/training/scripts/run_spider.py --spider npm --limit N`
-   (单件 3 请求, 1500 配额约 700 件/日 [第3/6天实测]; 命令须以放行的 python
-   绝对路径或 HTTPS_PROXY 前缀开头, 勿带 cd 前缀、勿加 HTTP_PROXY= 多前缀,
-   否则 Auto 模式 allow 规则不匹配); 跑完 `--import-after` 或单独 import;
-   12 个时代轴配额见 npm.py SEARCH_AXES, 轴序 A→L; 当前: 明轴窗口满, 清轴
-   窗口推进中; 剩余 ~795 ≈ 1.5 天
+1. **(可选) npm 扩样**: 窗口外缓存 612 件 (A p3 300 件、K p2 172 件、
+   J p2 91 件、I p2 89 件、A p2 41 件) 若用户决定扩大样本, 把 npm.py
+   SEARCH_AXES 对应轴配额上调 (A 500→800 可收 p2 尾+p3; K 400→600
+   可收 p2 尾; J/I 500→600), 续跑即可自动收 (缓存已有, 不烧搜索页
+   配额; 每件 ~2 请求, 612 件 ≈ 1300 请求 ≈ 1 天)。默认不扩, 分层
+   抽样按 2026-11-03 用户定策已完成。
 2. **capital_museum** — 2026-11-04 复核: Nuxt SPA 藏品列表走客户端 API
    (needs_browser), 与 reachable 国内站同批走 Playwright/挖接口
 3. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
