@@ -6,7 +6,7 @@
 > daily_scrape.ps1 / daily_scrape_prompt.txt 留存仓库仅作参考, 不再被调度。
 
 **状态: ACTIVE**
-最后更新: 2026-11-18 (扩样收尾日: 3 批 +304 图, 累计 3484; 队列空, npm 宣告 DONE)
+最后更新: 2026-11-18 下午 (capital_museum 落地 +3 件; Playwright 已装, 国内站批次开工)
 
 ## 总体进度
 
@@ -22,18 +22,18 @@
 | colbase | ✅ 完成 (2026-11-02, 606件候选 → 309下载导入 / 297拒件留档, 见 skip_log) | 309 | ✅ |
 | untested 海外站探测 | ✅ 完成 (2026-11-03: brooklyn WAF / mfa robots禁搜 / korea 登录 / guimet 无库 / asian_art_sf 无库; **taipei_npm 命中**), 证据 scraped_data/_untested_probe/ | - | - |
 | npm (台北故宫) | ✅ **完成** (2026-11-18 扩样收尾): 主体 3110 件 + 扩样 612 件全收, 队列空 (Processing 0 items); 累计导入 3484 图 (11-18 +304: 批1 197 + 批2 107), skip_log 238 件终态留档 (no manifest 等); 11-18 请求 994/1500 | 3484 | ✅ |
+| capital_museum (首都博物馆) | ✅ **完成** (2026-11-18, 全站仅馆藏精品 ~55 件): Playwright 抓 XHR 挖出 collectionList API; 玉器 4 + 文玩 1 → **3 玉器导入** (青白玉折枝花形佩/白玉透雕龙纹带板/莲荷鹭鸶白玉活链盖卣, 750×960); 拒收留档: 石雕麒麟纹栏板 (石质误入玉器类目) + 元章款石砚 (文玩非玉) | 3 | ✅ |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **capital_museum** — 2026-11-04 复核: Nuxt SPA 藏品列表走客户端 API
-   (needs_browser), 与 reachable 国内站同批走 Playwright/挖接口
-2. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
+1. **reachable 国内站** (多数 JS 渲染, 需找 API; Playwright 已装
+   chromium-1255, 手法见下「Nuxt SPA 挖接口」): guobo, henan, hunan, shandong,
    shaanxi, nanjing, shanxi, liaoning, sichuan, guangdong, gansu, guangxi,
    fujian, jiangxi, chongqing, yin_ruins, sanxingdui
-3. **gugong** Playwright 骨架落地 (`spiders/domestic/central/gugong.py`)
-4. key_required 站点 (freer_sackler, rijksmuseum, harvard) 无 key, 暂缓
+2. **gugong** Playwright 骨架落地 (`spiders/domestic/central/gugong.py`)
+3. key_required 站点 (freer_sackler, rijksmuseum, harvard) 无 key, 暂缓
 
 ## 完成定义
 
@@ -181,4 +181,11 @@
   RequestException); (3) 大批件同一原因卡住时优先怀疑解析器 (呼应
   knmdb 教训); (4) 用 TaskStop 硬杀爬虫会丢内存中的 request_counts
   (checkpoint 只在 finally 落盘), 误判「零请求」会带偏排查方向。
+- **Nuxt SPA 挖接口手法** (2026-11-18, capital_museum): Playwright headless
+  开页面 → page.on('response') 收 XHR → 点分类标签触发列表请求 → capture.jsonl
+  留档。Nuxt 站 SSR 的 `__NUXT_DATA__` payload (devalue 序列化) 里常嵌首屏
+  API 响应与分类 hash (形如 "32位hex","分类名",{"classid":N})。capital_museum
+  列表 API 的 classid 参数要传 **分类 hash** (不是 payload 里的 classid 数字
+  索引 — 数字传 0 结果)。另注意: 探测期连发 9 请求触发 API 域
+  ConnectionReset(10054) 临时限流 (www 主域同受), 探测也要守 3-8s 延时。
 - 爬虫伦理: 单线程、随机延时、1500请求/天/域名 (2026-11-03 上调)、尊重 robots.txt (CLAUDE.md)

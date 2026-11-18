@@ -17,6 +17,7 @@ from .overseas.asia_other.knmdb import KnmdbSpider
 from .overseas.asia_other.colbase import ColbaseSpider
 from .overseas.asia_other.npm import NpmSpider
 from .domestic.central.gugong import GugongSpider
+from .domestic.municipal.capital_museum import CapitalMuseumSpider
 
 SPIDERS: Dict[str, Type[BaseJadeSpider]] = {
     'met': MetSpider,
@@ -28,4 +29,5 @@ SPIDERS: Dict[str, Type[BaseJadeSpider]] = {
     'colbase': ColbaseSpider,
     'npm': NpmSpider,
     'gugong': GugongSpider,  # 骨架 (需 Playwright, 下轮实现)
+    'capital_museum': CapitalMuseumSpider,
 }
