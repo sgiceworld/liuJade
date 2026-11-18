@@ -440,6 +440,7 @@ class BaseJadeSpider(ABC):
                                    or item.get('image_urls', []))]
 
                 img_net_fail = False
+                img_got = False
                 for group in groups:
                     urls = group if isinstance(group, (list, tuple)) else [group]
                     if dry_run:
@@ -467,9 +468,18 @@ class BaseJadeSpider(ABC):
                             continue
                         if metadata:
                             downloaded += 1
+                            img_got = True
                             if downloaded % 10 == 0:
                                 print(f"[{self.name}] Downloaded {downloaded} images...")
                             break  # 该组已得一张, 不再下载备选
+                if not dry_run and not img_got and not img_net_fail:
+                    # 全部候选被下载器静默拒绝 (质量<300px/文件过大/pHash 去重):
+                    # 计入统计 (2026-11-18 guobo 教训: 静默拒绝不计数,
+                    # 60 件批 22 件去向不明, 需 checkpoint 手术找回)。
+                    # pHash 去重件属已入库图, 标记已处理正确, 仅补统计。
+                    skipped += 1
+                    skip_reasons['图片质量/去重拒绝'] = \
+                        skip_reasons.get('图片质量/去重拒绝', 0) + 1
                 if img_net_fail:
                     # 件不标记已处理 (下轮重试, 不丢图);
                     # 连续 10 件图片连接失败 → 图源疑似宕机, 提前收尾,

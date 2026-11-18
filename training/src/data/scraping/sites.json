@@ -87,10 +87,10 @@
       "type": "js",
       "base_url": "https://www.chnmuseum.cn",
       "entry_url": "https://www.chnmuseum.cn/zp/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 详情页无静态藏品图 (JS 渲染), 需 Playwright",
-      "spider": null,
-      "verified_at": null
+      "status": "verified",
+      "status_note": "2026-11-18 落地: /SearchAll 关键词轴 (玉≈43页/翡翠/玛瑙), classification 槽2=质地(3=玉质)列表级过滤, 空质地走详情复核; 需 X-Requested-With 头否则 WAF 挑战",
+      "spider": "guobo",
+      "verified_at": "2026-11-18"
     },
     {
       "id": "shanghai",
