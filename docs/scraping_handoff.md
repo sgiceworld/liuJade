@@ -6,7 +6,7 @@
 > daily_scrape.ps1 / daily_scrape_prompt.txt 留存仓库仅作参考, 不再被调度。
 
 **状态: ACTIVE**
-最后更新: 2026-11-18 下午 (capital_museum 落地 +3 件; Playwright 已装, 国内站批次开工)
+最后更新: 2026-11-18 晚 (capital_museum +3 完成; guobo 首日 6 批 394 件导入, 队列清空; 国内站批次推进中)
 
 ## 总体进度
 
@@ -23,15 +23,17 @@
 | untested 海外站探测 | ✅ 完成 (2026-11-03: brooklyn WAF / mfa robots禁搜 / korea 登录 / guimet 无库 / asian_art_sf 无库; **taipei_npm 命中**), 证据 scraped_data/_untested_probe/ | - | - |
 | npm (台北故宫) | ✅ **完成** (2026-11-18 扩样收尾): 主体 3110 件 + 扩样 612 件全收, 队列空 (Processing 0 items); 累计导入 3484 图 (11-18 +304: 批1 197 + 批2 107), skip_log 238 件终态留档 (no manifest 等); 11-18 请求 994/1500 | 3484 | ✅ |
 | capital_museum (首都博物馆) | ✅ **完成** (2026-11-18, 全站仅馆藏精品 ~55 件): Playwright 抓 XHR 挖出 collectionList API; 玉器 4 + 文玩 1 → **3 玉器导入** (青白玉折枝花形佩/白玉透雕龙纹带板/莲荷鹭鸶白玉活链盖卣, 750×960); 拒收留档: 石雕麒麟纹栏板 (石质误入玉器类目) + 元章款石砚 (文玩非玉) | 3 | ✅ |
+| guobo (中国国家博物馆) | ✅ **首日完成** (2026-11-18, 6 批 1046/1500 请求): /SearchAll 关键词轴 (玉429+翡翠1+玛瑙14) → **394 件导入**; 拒收留档 43 件 (瓷质玉壶春瓶等 classification 槽2 过滤 + 详情复核 + 6 件老图仅 281px); ⚠ 玉轴结果按相关性排序**日间漂移** (444→372), 5 件已处理集外件待未来重跑补收 | 394 | ✅ |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
 1. **reachable 国内站** (多数 JS 渲染, 需找 API; Playwright 已装
-   chromium-1255, 手法见下「Nuxt SPA 挖接口」): guobo, henan, hunan, shandong,
+   chromium-1255, 手法见下「Nuxt SPA 挖接口」): henan, hunan, shandong,
    shaanxi, nanjing, shanxi, liaoning, sichuan, guangdong, gansu, guangxi,
    fujian, jiangxi, chongqing, yin_ruins, sanxingdui
+   (guobo 建议每日小批重跑补收排序漂移件, 见站点行注)
 2. **gugong** Playwright 骨架落地 (`spiders/domestic/central/gugong.py`)
 3. key_required 站点 (freer_sackler, rijksmuseum, harvard) 无 key, 暂缓
 
@@ -188,4 +190,14 @@
   列表 API 的 classid 参数要传 **分类 hash** (不是 payload 里的 classid 数字
   索引 — 数字传 0 结果)。另注意: 探测期连发 9 请求触发 API 域
   ConnectionReset(10054) 临时限流 (www 主域同受), 探测也要守 3-8s 延时。
+- **guobo 相关** (2026-11-18): (1) /SearchAll 直连必须带
+  X-Requested-With: XMLHttpRequest + Referer, 否则返回 JS 挑战页
+  (noscript), 浏览器会话可过; (2) 搜索响应 classification 字段
+  槽2=质地 (3=玉质, 6=瓷质...) 可列表级过滤, 但老件 (数据在另一表)
+  classification 全空, 必须详情页复核; (3) 详情页展示 <img> 是缩略图
+  (可 <300px), **data-src 才是原图** — 只看 slt/展示图会被 300px 质量
+  门槛静默拒收 (批1 22/60 件去向不明, checkpoint 手术找回);
+  (4) 玉 关键词轴按相关性排序, **结果集日间漂移** (444→372), 已处理
+  集外件会漏 — 关键词轴站点建议每日小批重跑兜底; (5) 2018 年老件
+  服务端最大图仅 281x421, 无大图变体, 终态拒收留档即可。
 - 爬虫伦理: 单线程、随机延时、1500请求/天/域名 (2026-11-03 上调)、尊重 robots.txt (CLAUDE.md)
