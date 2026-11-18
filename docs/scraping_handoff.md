@@ -6,7 +6,7 @@
 > daily_scrape.ps1 / daily_scrape_prompt.txt 留存仓库仅作参考, 不再被调度。
 
 **状态: ACTIVE**
-最后更新: 2026-11-17 19:20 (第7天 +417 件; 扩样批第1天, 剩 ~360 件明日收尾)
+最后更新: 2026-11-18 (扩样收尾日: 3 批 +304 图, 累计 3484; 队列空, npm 宣告 DONE)
 
 ## 总体进度
 
@@ -21,26 +21,19 @@
 | senoku (泉屋博古館) | ✅ 负结果坐实 (2026-11-02 43件逐件留档全非玉, 证据见 scraped_data/senoku/skip_log.jsonl) | 0 | - |
 | colbase | ✅ 完成 (2026-11-02, 606件候选 → 309下载导入 / 297拒件留档, 见 skip_log) | 309 | ✅ |
 | untested 海外站探测 | ✅ 完成 (2026-11-03: brooklyn WAF / mfa robots禁搜 / korea 登录 / guimet 无库 / asian_art_sf 无库; **taipei_npm 命中**), 证据 scraped_data/_untested_probe/ | - | - |
-| npm (台北故宫) | 🔄 分层抽样主体✅完成 + **扩样进行中** (2026-11-17 用户定策): 主体 3110 件处理 (3012 有图 / 98 无数字化留档); 扩样第1天 +168 图 (累计3180; d7e 132 + d7f 36), 剩 ~360 件明日收尾; 今日 digitalarchive 恰满 1494/1500 | 3180 | ✅ |
+| npm (台北故宫) | ✅ **完成** (2026-11-18 扩样收尾): 主体 3110 件 + 扩样 612 件全收, 队列空 (Processing 0 items); 累计导入 3484 图 (11-18 +304: 批1 197 + 批2 107), skip_log 238 件终态留档 (no manifest 等); 11-18 请求 994/1500 | 3484 | ✅ |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **npm 扩样收尾 (~360 件, 明日 11-18 一批收完)**: 已上调 SEARCH_AXES
-   (A 500→900、I/J 500→600、K 400→600), 缓存已有不烧搜索页配额,
-   每件 ~2 请求 ≈ 800 请求。命令
-   `HTTPS_PROXY=http://127.0.0.1:7890 /c/Users/LiuCN/AppData/Local/Python/pythoncore-3.14-64/python.exe /d/liuJade/training/scripts/run_spider.py --spider npm --limit 220 --import-after`
-   (勿带 cd 前缀/多余 env 前缀, 否则 Auto 模式 allow 规则不匹配);
-   220×2 批或 220+小批, 至「Processing 0 items」即扩样完成,
-   npm 整体宣告 DONE。
-2. **capital_museum** — 2026-11-04 复核: Nuxt SPA 藏品列表走客户端 API
+1. **capital_museum** — 2026-11-04 复核: Nuxt SPA 藏品列表走客户端 API
    (needs_browser), 与 reachable 国内站同批走 Playwright/挖接口
-3. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
+2. **reachable 国内站** (多数 JS 渲染, 需找 API): guobo, henan, hunan, shandong,
    shaanxi, nanjing, shanxi, liaoning, sichuan, guangdong, gansu, guangxi,
    fujian, jiangxi, chongqing, yin_ruins, sanxingdui
-4. **gugong** Playwright 骨架落地 (`spiders/domestic/central/gugong.py`)
-5. key_required 站点 (freer_sackler, rijksmuseum, harvard) 无 key, 暂缓
+3. **gugong** Playwright 骨架落地 (`spiders/domestic/central/gugong.py`)
+4. key_required 站点 (freer_sackler, rijksmuseum, harvard) 无 key, 暂缓
 
 ## 完成定义
 
