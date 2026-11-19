@@ -34,7 +34,7 @@ class ScraperConfig:
     # 请求策略
     MIN_DELAY_SEC = 3.0         # 最小请求间隔
     MAX_DELAY_SEC = 8.0         # 最大请求间隔
-    MAX_REQUESTS_PER_DAY = 1500  # 单站点每日上限 (2026-11-03 用户上调, 原 500)
+    MAX_REQUESTS_PER_DAY = 3000  # 单站点每日上限 (2026-11-19 用户上调, 原 1500; hunan 3877 件工期 6天→2.6天)
     REQUEST_TIMEOUT = 30         # 请求超时
 
     # 身份标识

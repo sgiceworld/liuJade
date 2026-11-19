@@ -6,7 +6,7 @@
 > daily_scrape.ps1 / daily_scrape_prompt.txt 留存仓库仅作参考, 不再被调度。
 
 **状态: ACTIVE**
-最后更新: 2026-11-19 (guobo 394 + capital_museum 3 + henan 52; 国内站批次推进中, 下一站 hunan)
+最后更新: 2026-11-19 (guobo 394 + capital_museum 3 + henan 52 + hunan 242↑; 日配额上调 3000, hunan 工期 ~2.6 天)
 
 ## 总体进度
 
@@ -206,4 +206,5 @@
   (henan 首跑 1500 请求 0 下载, ~2h 白耗)。对策: 首屏分页器读最大页数
   作硬上限 + 与上一页 item 集相同即 break。所有新站翻页循环都要有
   双重保护 (空页 + 硬上限/重复检测)。
-- 爬虫伦理: 单线程、随机延时、1500请求/天/域名 (2026-11-03 上调)、尊重 robots.txt (CLAUDE.md)
+- 爬虫伦理: 单线程、随机延时、3000请求/天/域名 (2026-11-19 用户定策上调,
+  原 1500; hunan 3877 件工期 6天→2.6天)、尊重 robots.txt (CLAUDE.md)
