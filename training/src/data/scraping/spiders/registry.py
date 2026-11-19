@@ -20,6 +20,7 @@ from .domestic.central.gugong import GugongSpider
 from .domestic.central.guobo import GuoboSpider
 from .domestic.municipal.capital_museum import CapitalMuseumSpider
 from .domestic.provincial.henan import HenanSpider
+from .domestic.provincial.hunan import HunanSpider
 
 SPIDERS: Dict[str, Type[BaseJadeSpider]] = {
     'met': MetSpider,
@@ -34,4 +35,5 @@ SPIDERS: Dict[str, Type[BaseJadeSpider]] = {
     'guobo': GuoboSpider,
     'capital_museum': CapitalMuseumSpider,
     'henan': HenanSpider,
+    'hunan': HunanSpider,
 }
