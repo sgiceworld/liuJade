@@ -6,7 +6,7 @@
 > daily_scrape.ps1 / daily_scrape_prompt.txt 留存仓库仅作参考, 不再被调度。
 
 **状态: ACTIVE**
-最后更新: 2026-11-18 晚 (capital_museum +3 完成; guobo 首日 6 批 394 件导入, 队列清空; 国内站批次推进中)
+最后更新: 2026-11-19 (guobo 394 + capital_museum 3 + henan 52; 国内站批次推进中, 下一站 hunan)
 
 ## 总体进度
 
@@ -24,13 +24,14 @@
 | npm (台北故宫) | ✅ **完成** (2026-11-18 扩样收尾): 主体 3110 件 + 扩样 612 件全收, 队列空 (Processing 0 items); 累计导入 3484 图 (11-18 +304: 批1 197 + 批2 107), skip_log 238 件终态留档 (no manifest 等); 11-18 请求 994/1500 | 3484 | ✅ |
 | capital_museum (首都博物馆) | ✅ **完成** (2026-11-18, 全站仅馆藏精品 ~55 件): Playwright 抓 XHR 挖出 collectionList API; 玉器 4 + 文玩 1 → **3 玉器导入** (青白玉折枝花形佩/白玉透雕龙纹带板/莲荷鹭鸶白玉活链盖卣, 750×960); 拒收留档: 石雕麒麟纹栏板 (石质误入玉器类目) + 元章款石砚 (文玩非玉) | 3 | ✅ |
 | guobo (中国国家博物馆) | ✅ **首日完成** (2026-11-18, 6 批 1046/1500 请求): /SearchAll 关键词轴 (玉429+翡翠1+玛瑙14) → **394 件导入**; 拒收留档 43 件 (瓷质玉壶春瓶等 classification 槽2 过滤 + 详情复核 + 6 件老图仅 281px); ⚠ 玉轴结果按相关性排序**日间漂移** (444→372), 5 件已处理集外件待未来重跑补收 | 394 | ✅ |
+| henan (河南博物院) | ✅ **完成** (2026-11-19): 静态站 5 tab 全遍历 (appraise 30页/centralPlains 49/digital 6/boutique 1/treasure 1), 题名玉系预筛 67 候选 → **52 件导入** (妇好墓玉龙/青玉龙形佩等); 拒收留档 15 (窦泰墓志石灰岩质/瓷质琮式瓶等); digital 详情指向外部 3D 平台按题名直收; boutique 结构化 类型/年代 字段 | 52 | ✅ |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
 1. **reachable 国内站** (多数 JS 渲染, 需找 API; Playwright 已装
-   chromium-1255, 手法见下「Nuxt SPA 挖接口」): henan, hunan, shandong,
+   chromium-1255, 手法见下「Nuxt SPA 挖接口」): hunan, shandong,
    shaanxi, nanjing, shanxi, liaoning, sichuan, guangdong, gansu, guangxi,
    fujian, jiangxi, chongqing, yin_ruins, sanxingdui
    (guobo 建议每日小批重跑补收排序漂移件, 见站点行注)
@@ -200,4 +201,9 @@
   (4) 玉 关键词轴按相关性排序, **结果集日间漂移** (444→372), 已处理
   集外件会漏 — 关键词轴站点建议每日小批重跑兜底; (5) 2018 年老件
   服务端最大图仅 281x421, 无大图变体, 终态拒收留档即可。
+- **分页死循环** (2026-11-18 教训, henan): 越界 pageIndex 可能返回重复
+  内容 (非空页), 靠「空页 break」的翻页循环会死循环烧光整日配额
+  (henan 首跑 1500 请求 0 下载, ~2h 白耗)。对策: 首屏分页器读最大页数
+  作硬上限 + 与上一页 item 集相同即 break。所有新站翻页循环都要有
+  双重保护 (空页 + 硬上限/重复检测)。
 - 爬虫伦理: 单线程、随机延时、1500请求/天/域名 (2026-11-03 上调)、尊重 robots.txt (CLAUDE.md)

@@ -19,6 +19,7 @@ from .overseas.asia_other.npm import NpmSpider
 from .domestic.central.gugong import GugongSpider
 from .domestic.central.guobo import GuoboSpider
 from .domestic.municipal.capital_museum import CapitalMuseumSpider
+from .domestic.provincial.henan import HenanSpider
 
 SPIDERS: Dict[str, Type[BaseJadeSpider]] = {
     'met': MetSpider,
@@ -32,4 +33,5 @@ SPIDERS: Dict[str, Type[BaseJadeSpider]] = {
     'gugong': GugongSpider,  # 骨架 (需 Playwright, 下轮实现)
     'guobo': GuoboSpider,
     'capital_museum': CapitalMuseumSpider,
+    'henan': HenanSpider,
 }
