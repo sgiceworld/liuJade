@@ -71,6 +71,8 @@ class CapitalMuseumSpider(BaseJadeSpider):
             base_url=SITE_BASE,
             config=config,
         )
+        # 国内站强制直连 (2026-11-23: HTTPS_PROXY 残留致 ProxyError)
+        self.session.trust_env = False
         self._records: Dict[str, Dict] = {}
 
     # ── 发现 ──

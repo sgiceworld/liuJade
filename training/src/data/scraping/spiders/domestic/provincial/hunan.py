@@ -71,6 +71,9 @@ class HunanSpider(BaseJadeSpider):
             base_url=HUNAN_DB,
             config=config,
         )
+        # 国内站强制直连: 忽略 shell 代理环境变量 (2026-11-23 教训:
+        # HTTPS_PROXY 残留使国内站走 Clash, ProxyError 断批)
+        self.session.trust_env = False
         self._records: Dict[str, Dict] = {}
 
     # ── 发现 ──

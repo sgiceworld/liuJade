@@ -79,6 +79,8 @@ class GuoboSpider(BaseJadeSpider):
             'Referer': GUOBO_BASE + '/qwjs/cpjs/',
             'Accept-Language': 'zh-CN,zh;q=0.9',
         })
+        # 国内站强制直连 (2026-11-23: HTTPS_PROXY 残留致 ProxyError)
+        self.session.trust_env = False
         self._records: Dict[str, Dict] = {}
 
     # ── 发现 ──

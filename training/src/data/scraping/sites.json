@@ -132,10 +132,10 @@
       "type": "untested",
       "base_url": "https://www.hnmuseum.com",
       "entry_url": "https://www.hnmuseum.com/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 详情页无静态藏品图 (JS 渲染), 需 Playwright",
-      "spider": null,
-      "verified_at": "2026-09-28"
+      "status": "verified",
+      "status_note": "2026-11-24 首轮完成: de.hnmuseum.com 玉石类 3877 件全处理 → 781 导入 / 1070 非玉(琉璃料器石质) / 2024 无数字化图; 待馆方补图后二次清扫 no image 件 (checkpoint 手术)",
+      "spider": "hunan",
+      "verified_at": "2026-11-24"
     },
     {
       "id": "shandong",
