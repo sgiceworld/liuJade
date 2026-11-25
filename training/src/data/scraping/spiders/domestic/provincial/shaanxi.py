@@ -67,6 +67,26 @@ class ShaanxiSpider(BaseJadeSpider):
             'X-Requested-With': 'XMLHttpRequest',
         })
         self._records: Dict[str, Dict] = {}
+        # 列表页缓存 (静态分页, 缓存后重跑发现阶段 0 请求;
+        # 2026-11-25: 每轮重走 663 页白烧配额)
+        self.pages_cache_dir = self.output_dir / 'pages_cache'
+        self.pages_cache_dir.mkdir(parents=True, exist_ok=True)
+
+    def _list_page_cached(self, page: int) -> Optional[str]:
+        """读缓存, 未命中才请求并落盘。"""
+        fp = self.pages_cache_dir / f'p{page}.html'
+        if fp.exists():
+            try:
+                return fp.read_text(encoding='utf-8')
+            except OSError:
+                pass
+        html = self._list_page(page)
+        if html is not None:
+            try:
+                fp.write_text(html, encoding='utf-8')
+            except OSError:
+                pass
+        return html
 
     # ── 发现 ──
 
@@ -102,7 +122,7 @@ class ShaanxiSpider(BaseJadeSpider):
         page = 1
         prev_rids: set = set()
         while True:
-            html = self._list_page(page)
+            html = self._list_page_cached(page)
             if html is None:
                 print(f"[shaanxi] 第 {page} 页请求失败, 本轮收尾 (下轮补)")
                 break

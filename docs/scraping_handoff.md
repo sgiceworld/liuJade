@@ -6,7 +6,7 @@
 > daily_scrape.ps1 / daily_scrape_prompt.txt 留存仓库仅作参考, 不再被调度。
 
 **状态: ACTIVE**
-最后更新: 2026-11-24 (hunan 首轮完成 781 图; 下一站 shandong; no image 二次清扫待馆方补图后)
+最后更新: 2026-11-25 晚 (shaanxi 499↑/710, 明日收尾 202 件; shandong 10 完成)
 
 ## 总体进度
 
@@ -26,16 +26,19 @@
 | guobo (中国国家博物馆) | ✅ **首日完成** (2026-11-18, 6 批 1046/1500 请求): /SearchAll 关键词轴 (玉429+翡翠1+玛瑙14) → **394 件导入**; 拒收留档 43 件 (瓷质玉壶春瓶等 classification 槽2 过滤 + 详情复核 + 6 件老图仅 281px); ⚠ 玉轴结果按相关性排序**日间漂移** (444→372), 5 件已处理集外件待未来重跑补收 | 394 | ✅ |
 | henan (河南博物院) | ✅ **完成** (2026-11-19): 静态站 5 tab 全遍历 (appraise 30页/centralPlains 49/digital 6/boutique 1/treasure 1), 题名玉系预筛 67 候选 → **52 件导入** (妇好墓玉龙/青玉龙形佩等); 拒收留档 15 (窦泰墓志石灰岩质/瓷质琮式瓶等); digital 详情指向外部 3D 平台按题名直收; boutique 结构化 类型/年代 字段 | 52 | ✅ |
 | hunan (湖南博物院) | ✅ **首轮完成** (2026-11-24): 新版藏品库 de.hnmuseum.com 玉石类 3877 件全处理 → **781 玉器导入** / 1070 非玉拒收 (琉璃料器石质 ~28%, 留档) / 2024 无数字化图 (thumb=None+imgUrl空, 留档); **二次清扫待办**: 馆方补图后 checkpoint 手术移除 no image 件重扫 (skip_log 有完整 ID 清单) | 781 | ✅ |
+| shandong (山东博物馆) | ✅ **完成** (2026-11-24): 玉石器栏 10 件全收 (908×598, 全玉题名无需过滤) | 10 | ✅ |
+| shaanxi (陕西历史博物馆) | 🔄 **收尾中** (2026-11-25): 全库 663 页 ≈ 8000 件遍历, 题名玉系 710 件 → **499 导入** (yield 97%+); 剩 202 件明日一批收完 (列表页缓存已建 664 页, 重跑发现阶段 0 请求); 假阳性题名 (玉壶春/琉璃/搪瓷) 过滤 | 499 | ✅ |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 出土玉器全集 | 🔶 图书导入 (见 book_importer.py) | - | - |
 | 其他 | ⬜ 见下一步 | - | - |
 
 ## 下一步 (按优先级推进)
 
-1. **reachable 国内站** (多数 JS 渲染, 需找 API; Playwright 已装
-   chromium-1255, 手法见下「Nuxt SPA 挖接口」): hunan, shandong,
-   shaanxi, nanjing, shanxi, liaoning, sichuan, guangdong, gansu, guangxi,
-   fujian, jiangxi, chongqing, yin_ruins, sanxingdui
+1. **shaarxi 收尾**: 明日一批 limit 250 收完剩余 202 件 (缓存就绪)
+2. **reachable 国内站** (多数 JS 渲染, 需找 API; Playwright 已装
+   chromium-1255, 手法见下「Nuxt SPA 挖接口」): nanjing, shanxi,
+   liaoning, sichuan, guangdong, gansu, guangxi, fujian, jiangxi,
+   chongqing, yin_ruins, sanxingdui
    (guobo 建议每日小批重跑补收排序漂移件, 见站点行注)
 2. **gugong** Playwright 骨架落地 (`spiders/domestic/central/gugong.py`)
 3. key_required 站点 (freer_sackler, rijksmuseum, harvard) 无 key, 暂缓

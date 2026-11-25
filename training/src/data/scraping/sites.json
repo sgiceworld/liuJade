@@ -147,10 +147,10 @@
       "type": "untested",
       "base_url": "https://www.sdmuseum.com",
       "entry_url": "https://www.sdmuseum.com/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 详情页无静态藏品图 (JS 渲染), 需 Playwright",
-      "spider": null,
-      "verified_at": "2026-09-28"
+      "status": "verified",
+      "status_note": "2026-11-24 完成: 玉石器栏 10 件全收, 静态站 UTF-8 无 charset 头需手动编码",
+      "spider": "shandong",
+      "verified_at": "2026-11-25"
     },
     {
       "id": "shaanxi",
@@ -162,10 +162,10 @@
       "type": "untested",
       "base_url": "https://www.sxhm.com",
       "entry_url": "https://www.sxhm.com/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 详情页无静态藏品图 (JS 渲染), 需 Playwright",
-      "spider": null,
-      "verified_at": "2026-09-28"
+      "status": "verified",
+      "status_note": "2026-11-25 落地: searchs/collections 分页 (663页), 题名玉系 710 件 yield 97%; 列表页缓存 pages_cache; 须 Referer 头",
+      "spider": "shaanxi",
+      "verified_at": "2026-11-25"
     },
     {
       "id": "hebei",
