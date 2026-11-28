@@ -4,7 +4,19 @@
       "WebSearch",
       "WebFetch(domain:www.yzqxj.com)",
       "WebFetch(domain:haerbin.tianqi.com)",
-      "WebFetch(domain:www.accuweather.com)"
+      "WebFetch(domain:www.accuweather.com)",
+      "Bash(curl:*)",
+      "Bash(tasklist:*)",
+      "Bash(/c/Users/LiuCN/AppData/Local/Python/pythoncore-3.14-64/python.exe:*)",
+      "Bash(HTTPS_PROXY=http://127.0.0.1:7890 /c/Users/LiuCN/AppData/Local/Python/pythoncore-3.14-64/python.exe:*)",
+      "Bash(HTTPS_PROXY=http://127.0.0.1:7890 python scripts/run_spider.py:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(PYTHONIOENCODING=utf-8 /c/Users/LiuCN/AppData/Local/Python/pythoncore-3.14-64/python.exe -c ' *)",
+      "Bash(git -C /d/liuJade add CLAUDE.md docs/scraping_handoff.md training/src/data/scraping/spiders/base.py)",
+      "Bash(git -C /d/liuJade commit -m 'chore: 日请求配额 1500→3000 \\(用户定策, hunan 工期 6天→2.6天\\) *)",
+      "Bash(HTTPS_PROXY=http://127.0.0.1:7890 git -C /d/liuJade push)"
     ]
   }
 }

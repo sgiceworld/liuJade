@@ -99,12 +99,12 @@
       "region": "domestic",
       "subregion": "provincial",
       "priority": "P0",
-      "type": "js",
+      "type": "api",
       "base_url": "https://www.shanghaimuseum.net",
-      "entry_url": "https://www.shanghaimuseum.net/mu/frontend/pg/collection",
-      "status": "unreachable",
-      "status_note": "探测(2026-09-28): 网络错误: HTTPError",
-      "spider": null,
+      "entry_url": "https://www.shanghaimuseum.net/mu/frontend/pg/lib1/index",
+      "status": "verified",
+      "status_note": "2026-11-28 落地: 旧路径 404, 真身在 /mu/ 前缀数字文物库; POST /mu/frontend/pg/collection/search-antique (libTypes=LIB_TYPE_0013 玉器, 带图 1270 件, 全类 3660, 全库珍贵文物 14.7万); 列表即全字段 (name/intraAgeCode/code 藏品号/picPath 640x640); 滤寿山石/珊瑚/珍珠等类别混分, 收 1261 件",
+      "spider": "shanghai",
       "verified_at": "2026-09-28"
     },
     {
@@ -174,12 +174,12 @@
       "region": "domestic",
       "subregion": "provincial",
       "priority": "P0",
-      "type": "untested",
-      "base_url": "https://www.hbww.org",
-      "entry_url": "https://www.hbww.org/",
-      "status": "unreachable",
-      "status_note": "探测(2026-09-28): 网络错误: SSLError",
-      "spider": null,
+      "type": "static",
+      "base_url": "https://apiwenwu.hebeimuseum.org.cn",
+      "entry_url": "https://apiwenwu.hebeimuseum.org.cn/news/lists.html?fl=3",
+      "status": "verified",
+      "status_note": "2026-11-28 落地: 主站藏品列表是死页面 (tbody 无加载器); 真身在 apiwenwu 文物数据库 — /news/lists.html?fl=3(玉器) 30 件 6/页 + 玛瑙/翡翠关键词轴, 滤玻璃/铜器后 28 件; 详情 /news/show/id/N.html 静态页 【题名】+尺寸+描述; 图 /upload/img 3888x2592 原图",
+      "spider": "hebei",
       "verified_at": "2026-09-28"
     },
     {
@@ -192,10 +192,10 @@
       "type": "untested",
       "base_url": "https://www.njmuseum.com",
       "entry_url": "https://www.njmuseum.com/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 列表页无详情链接 (可能 JS/XHR 动态加载), 需 Playwright",
+      "status": "unreachable",
+      "status_note": "2026-11-26 复核: 全站 405 系统维护中 (首页/zh 同), .com.cn 无解析; 改日重试",
       "spider": null,
-      "verified_at": null
+      "verified_at": "2026-11-26"
     },
     {
       "id": "zhejiang",
@@ -204,12 +204,12 @@
       "region": "domestic",
       "subregion": "provincial",
       "priority": "P0",
-      "type": "untested",
-      "base_url": "https://www.zhejiangmuseum.com",
-      "entry_url": "https://www.zhejiangmuseum.com/",
-      "status": "unreachable",
-      "status_note": "探测(2026-09-28): 网络错误: SSLError",
-      "spider": null,
+      "type": "api",
+      "base_url": "https://www.zjmuex.com",
+      "entry_url": "https://www.zjmuex.com/#/flightVisitor/culturalRelic",
+      "status": "verified",
+      "status_note": "2026-11-28 落地: 旧域 zhejiangmuseum.com 已死, 真身 zjmuex.com 省公共服务平台; pageExhibit API (limit=200, 按 Accept 头返回 JSON, 否则 XML); 名称轴 玉477+玛瑙8+翡翠1+水晶5+琥珀3+绿松石1, 滤 generalType CMS1714 书画 46 件等假阳性 → 425 件; 列表即全字段 (ageDetail/totalNumber/orgName 省内各馆/size/description); 图 1920x1440 原图",
+      "spider": "zhejiang",
       "verified_at": null
     },
     {
@@ -234,13 +234,13 @@
       "region": "domestic",
       "subregion": "provincial",
       "priority": "P0",
-      "type": "untested",
-      "base_url": "https://www.shanximuseum.com",
-      "entry_url": "https://www.shanximuseum.com/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 详情页无静态藏品图 (JS 渲染), 需 Playwright",
-      "spider": null,
-      "verified_at": null
+      "type": "api",
+      "base_url": "https://www.shanximuseum.com.cn",
+      "entry_url": "https://www.shanximuseum.com.cn/sx/collection/collection.html",
+      "status": "verified",
+      "status_note": "2026-11-26 落地: 旧域 .com 已死, 真身 .com.cn; FastAdmin API /sx/collection/collection_list (material2=玉 47 件, 全库 338); 详情静态页 (h26 品名/p 时代/child data-url 大图/cont 描述); 47 玉器导入 (晋侯墓地玉器群)",
+      "spider": "shanxi",
+      "verified_at": "2026-11-26"
     },
     {
       "id": "liaoning",
@@ -249,13 +249,13 @@
       "region": "domestic",
       "subregion": "provincial",
       "priority": "P0",
-      "type": "untested",
+      "type": "api",
       "base_url": "https://www.lnmuseum.com.cn",
       "entry_url": "https://www.lnmuseum.com.cn/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 列表页无详情链接 (可能 JS/XHR 动态加载), 需 Playwright",
-      "spider": null,
-      "verified_at": null
+      "status": "verified",
+      "status_note": "2026-11-26/27 落地+收官: Vue SPA chunk 反查 + 实测挖出 szwwkt (数字文物课堂) API /singleMuseum/szwwkt/list?category=3(玉器) allRow=1572 + name 轴 (玛瑙232/翡翠/水晶/琥珀/绿松石) 共 1672 件全部导入 (昨 313 + 今 1359); 图 getImg?fileId=..&type=S 2272×1704; 全库 31653 件; size=200 分页可用",
+      "spider": "liaoning",
+      "verified_at": "2026-11-27"
     },
     {
       "id": "sichuan",
@@ -264,13 +264,13 @@
       "region": "domestic",
       "subregion": "provincial",
       "priority": "P0",
-      "type": "untested",
+      "type": "api",
       "base_url": "https://www.scmuseum.cn",
-      "entry_url": "https://www.scmuseum.cn/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 列表页无详情链接 (可能 JS/XHR 动态加载), 需 Playwright",
+      "entry_url": "https://www.scmuseum.cn/Explore/Collection",
+      "status": "no_hq_images",
+      "status_note": "2026-11-27 API 打通: queryCulGeneralPageList (culType=宝玉石 全库 68 件, 字段全) + AES-ECB token (appid=75d98ea426f4412eab623c9076365802, key=TYYY3OT3TOCBW7OWT33QMVJ32IUUVC22, 明文=6随机字符+epoch毫秒, 从 index chunk 反查); 但图仅 /file/cul/imgs/{号}.jpg 缩略图 300x199 全库统一, 低于 300px 质量线 → 图质拒收留档; 馆藏精品 ColHome 仅 6 件无玉; 若馆方发布大图可立即落地 (爬虫骨架见 probe_sc_archives.py)",
       "spider": null,
-      "verified_at": null
+      "verified_at": "2026-11-27"
     },
     {
       "id": "guangdong",
@@ -279,13 +279,13 @@
       "region": "domestic",
       "subregion": "provincial",
       "priority": "P0",
-      "type": "untested",
-      "base_url": "https://www.gdmuseum.com",
-      "entry_url": "https://www.gdmuseum.com/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 详情页无静态藏品图 (JS 渲染), 需 Playwright",
-      "spider": null,
-      "verified_at": null
+      "type": "static",
+      "base_url": "https://www.gdmuseum.org.cn",
+      "entry_url": "https://www.gdmuseum.org.cn/col49/list",
+      "status": "verified",
+      "status_note": "2026-11-27 落地: 旧域 .com 301 → .org.cn; 藏品库 col49 全库 3764 件静态分页 16/页, 关键词搜索 名称/年代/类型; 玉石器轴 49 + 玉轴 (滤 玉壶春/玉堂佳器/潘玉书/嵌玉/镶玉) + 玛瑙轴 共 58 件; 详情静态页全字段 + imgHuilanMediaArray 大图; 珊瑚轴弃 (8/9 珊瑚红瓷器釉色); col73 总目 18 万行纯文本无图不收",
+      "spider": "guangdong",
+      "verified_at": "2026-11-27"
     },
     {
       "id": "tianjin",
@@ -489,13 +489,13 @@
       "region": "domestic",
       "subregion": "provincial",
       "priority": "P1",
-      "type": "untested",
+      "type": "api",
       "base_url": "https://www.gansumuseum.com",
-      "entry_url": "https://www.gansumuseum.com/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 列表页无详情链接 (可能 JS/XHR 动态加载), 需 Playwright",
-      "spider": null,
-      "verified_at": null
+      "entry_url": "https://www.gansumuseum.com/collectionList",
+      "status": "verified",
+      "status_note": "2026-11-27 落地: sccp-cms 公开 API (无鉴权) news/page 复用为典藏目录 catalogCode=00000000,1702864504053 全库 928 件; 类目树玉石器仅标 2 件 (馆方标注不全) → 全库题名玉系过滤 37 件 (滤金镶玉/金耳坠/炭精); 列表即全字段 (subTitle 时代/shortTitle 等级/description 尺寸); 图 3 形态 (新式 3004x2392/老式 1600x1600/thumb_ 去前缀 1000x666); 坑: SPA 路由守卫直接 URL 打回 /home, 须导航菜单点入 (仅影响浏览器侦察, API 直连无碍)",
+      "spider": "gansu",
+      "verified_at": "2026-11-26"
     },
     {
       "id": "qinghai",
@@ -552,10 +552,10 @@
       "type": "untested",
       "base_url": "https://www.gxmuseum.com",
       "entry_url": "https://www.gxmuseum.com/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 详情页无静态藏品图 (JS 渲染), 需 Playwright",
+      "status": "unreachable",
+      "status_note": "2026-11-26 复核: gxmuseum.com DNS 已死 (nxdomain); 待查新域名",
       "spider": null,
-      "verified_at": null
+      "verified_at": "2026-11-26"
     },
     {
       "id": "fujian",
@@ -567,10 +567,10 @@
       "type": "untested",
       "base_url": "https://www.fjbwy.com",
       "entry_url": "https://www.fjbwy.com/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 列表页无详情链接 (可能 JS/XHR 动态加载), 需 Playwright",
+      "status": "unreachable",
+      "status_note": "2026-11-26 复核: 站点可开但全部 /api/* 返回 403 (浏览器内亦 403), 疑似后端下线; 暂缓",
       "spider": null,
-      "verified_at": null
+      "verified_at": "2026-11-26"
     },
     {
       "id": "jiangxi",
@@ -582,10 +582,10 @@
       "type": "untested",
       "base_url": "https://www.jxmuseum.cn",
       "entry_url": "https://www.jxmuseum.cn/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 列表页无详情链接 (可能 JS/XHR 动态加载), 需 Playwright",
+      "status": "no_online_db",
+      "status_note": "2026-11-26 负结果坐实: sw-cms API queryArchivesList 全部典藏频道 (ysq玉石器/qtq青铜器/tcq陶瓷器/jyq金银器/zh字画/jpxs精品欣赏/szgc数字馆藏) total=0 未发布 (对照 slide=3/snews=418/baseexhibition=7 正常); 全站无在线藏品库",
       "spider": null,
-      "verified_at": null
+      "verified_at": "2026-11-26"
     },
     {
       "id": "anhui",
@@ -609,13 +609,13 @@
       "region": "domestic",
       "subregion": "municipal",
       "priority": "P1",
-      "type": "untested",
+      "type": "static",
       "base_url": "https://www.3gmuseum.cn",
       "entry_url": "https://www.3gmuseum.cn/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 详情页无静态藏品图 (JS 渲染), 需 Playwright",
-      "spider": null,
-      "verified_at": null
+      "status": "verified",
+      "status_note": "2026-11-26 落地: 静态站服务端分页 (三维藏品 col5009285 8页×8, 卡片 target=_blank 曾致正则漏配); 详情为 WebGL 3D 无文本, 仅收列表图; 玉系 4 件导入 (青玉船形摆件/青玉桃形笔洗/凤首玉带钩/青白玉葫芦摆件); 镇馆之宝 20 件无玉",
+      "spider": "chongqing",
+      "verified_at": "2026-11-26"
     },
     {
       "id": "neimenggu",
@@ -669,12 +669,12 @@
       "region": "domestic",
       "subregion": "municipal",
       "priority": "P1",
-      "type": "untested",
+      "type": "static",
       "base_url": "https://www.lzmuseum.cn",
-      "entry_url": "https://www.lzmuseum.cn/",
-      "status": "unreachable",
-      "status_note": "探测(2026-09-28): 网络错误: HTTPError",
-      "spider": null,
+      "entry_url": "https://www.lzmuseum.cn/YuQi/index.html",
+      "status": "verified",
+      "status_note": "2026-11-28 落地: 站点恢复 (2026-09-28 曾 HTTPError); 典藏精品玉器 /YuQi/index{,_1..3}.html 40 件 (陶器/石器/其它在线列表为空); 详情静态页 .detail_t/.detail_text (图注含出土地 M14:221 等); 图 /files/images/{中文文件名}.jpg 780x780 须 URL 编码; 复制品不收",
+      "spider": "liangzhu",
       "verified_at": null
     },
     {
@@ -684,13 +684,13 @@
       "region": "domestic",
       "subregion": "municipal",
       "priority": "P1",
-      "type": "untested",
-      "base_url": "https://www.ayyx.com",
-      "entry_url": "https://www.ayyx.com/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 列表页无详情链接 (可能 JS/XHR 动态加载), 需 Playwright",
-      "spider": null,
-      "verified_at": null
+      "type": "api",
+      "base_url": "https://www.yinxubwg.cn",
+      "entry_url": "https://guc.yinxubwg.cn/gwebapi/exhibit/list?p=w&cate_ids=4&page=1&limit=100",
+      "status": "verified",
+      "status_note": "2026-11-26 落地: 旧域 ayyx.com 301 → yinxubwg.cn, API guc.yinxubwg.cn/gwebapi; exhibit/list cate_ids=4(玉石器) 全库仅 35 件, 玉器 3 件 (玉戚/玉熊/玉凤, 商代) 已导入; 列表即全字段",
+      "spider": "yin_ruins",
+      "verified_at": "2026-11-26"
     },
     {
       "id": "sanxingdui",
@@ -699,13 +699,13 @@
       "region": "domestic",
       "subregion": "municipal",
       "priority": "P1",
-      "type": "untested",
+      "type": "api",
       "base_url": "https://www.sxd.cn",
-      "entry_url": "https://www.sxd.cn/",
-      "status": "reachable",
-      "status_note": "探测(2026-09-28): 列表页无详情链接 (可能 JS/XHR 动态加载), 需 Playwright",
-      "spider": null,
-      "verified_at": null
+      "entry_url": "https://www.sxd.cn/relics",
+      "status": "verified",
+      "status_note": "2026-11-27 落地: JS 反查破解签名 (ts=epoch秒, nonce=16位, sign=MD5(sangw+ts+lTqu4m3YZljxBFO9+nonce)); exhibit/search 全库 1100 件 rn 上限 20, 玉系命中 272 件 (全 玉石器、宝石, 商玉璋/玉戈/玉凿/玉戚形璧群); 列表即全字段 (尺寸/描述/出土地/等级), COS 原图 3430x1930; 注意 API 只认 POST (GET 带 body 忽略 pn 死循环)",
+      "spider": "sanxingdui",
+      "verified_at": "2026-11-26"
     },
     {
       "id": "luoyang",

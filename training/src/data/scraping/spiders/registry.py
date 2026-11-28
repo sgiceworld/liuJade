@@ -19,10 +19,21 @@ from .overseas.asia_other.npm import NpmSpider
 from .domestic.central.gugong import GugongSpider
 from .domestic.central.guobo import GuoboSpider
 from .domestic.municipal.capital_museum import CapitalMuseumSpider
+from .domestic.municipal.yin_ruins import YinRuinsSpider
+from .domestic.municipal.chongqing import ChongqingSpider
+from .domestic.municipal.liangzhu import LiangzhuSpider
 from .domestic.provincial.henan import HenanSpider
 from .domestic.provincial.hunan import HunanSpider
 from .domestic.provincial.shandong import ShandongSpider
 from .domestic.provincial.shaanxi import ShaanxiSpider
+from .domestic.provincial.shanxi import ShanxiSpider
+from .domestic.provincial.liaoning import LiaoningSpider
+from .domestic.provincial.guangdong import GuangdongSpider
+from .domestic.provincial.sanxingdui import SanxingduiSpider
+from .domestic.provincial.gansu import GansuSpider
+from .domestic.provincial.hebei import HebeiSpider
+from .domestic.provincial.shanghai import ShanghaiSpider
+from .domestic.provincial.zhejiang import ZhejiangSpider
 
 SPIDERS: Dict[str, Type[BaseJadeSpider]] = {
     'met': MetSpider,
@@ -36,8 +47,19 @@ SPIDERS: Dict[str, Type[BaseJadeSpider]] = {
     'gugong': GugongSpider,  # 骨架 (需 Playwright, 下轮实现)
     'guobo': GuoboSpider,
     'capital_museum': CapitalMuseumSpider,
+    'yin_ruins': YinRuinsSpider,
+    'chongqing': ChongqingSpider,
+    'liangzhu': LiangzhuSpider,
     'henan': HenanSpider,
     'hunan': HunanSpider,
     'shandong': ShandongSpider,
     'shaanxi': ShaanxiSpider,
+    'shanxi': ShanxiSpider,
+    'liaoning': LiaoningSpider,
+    'guangdong': GuangdongSpider,
+    'sanxingdui': SanxingduiSpider,
+    'gansu': GansuSpider,
+    'hebei': HebeiSpider,
+    'shanghai': ShanghaiSpider,
+    'zhejiang': ZhejiangSpider,
 }
